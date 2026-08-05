@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Import fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  
+  * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  body {
+    @apply bg-wms-paper;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D9D6D1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  /* Focus styles */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #C81E2C !important;
+    box-shadow: 0 0 0 3px #FDF1F2 !important;
+  }
+}
+
+@layer components {
+  /* Card components */
+  .wms-card {
+    @apply transition-all duration-200 ease-in-out bg-white border border-wms-line rounded-xl shadow-wms-sm;
+  }
+  .wms-card:hover {
+    @apply shadow-wms-md border-wms-line;
+  }
+  .wms-card-hover:hover {
+    @apply -translate-y-0.5 shadow-wms-lg;
+  }
+  
+  /* Button components */
+  .wms-btn {
+    @apply transition-all duration-150 ease-in-out;
+  }
+  .wms-btn:hover {
+    filter: brightness(1.06);
+  }
+  .wms-btn:active {
+    transform: translateY(1px);
+  }
+  
+  /* Navigation items */
+  .wms-navitem {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  /* Icon buttons */
+  .wms-iconbtn {
+    @apply transition-all duration-200 ease-in-out rounded-lg;
+  }
+  .wms-iconbtn:hover {
+    @apply bg-wms-paper-dim text-wms-ink-900;
+  }
+  
+  /* Table rows */
+  .wms-row {
+    @apply transition-all duration-150 ease-in-out;
+  }
+  .wms-row:hover {
+    @apply bg-wms-paper-dim;
+  }
+  
+  /* Input style */
+  .wms-input {
+    @apply w-full px-[11px] py-[9px] rounded-lg border border-wms-line text-sm text-wms-ink-900 outline-none bg-white transition-all duration-200 ease-in-out;
+  }
+  .wms-input:focus {
+    @apply border-wms-red-600 shadow-[0_0_0_3px_#FDF1F2];
+  }
+}
+
+@layer utilities {
+  /* Signature pattern from React design */
+  .wms-signature {
+    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.10) 0px, rgba(255,255,255,0.10) 1.5px, transparent 1.5px, transparent 13px);
+  }
+  
+  /* Hazard rail from React design */
+  .wms-hazard-rail {
+    @apply inline-block w-[14px] h-1.5 rounded;
+    background-image: linear-gradient(135deg, #E14B54 0%, #AF1424 55%, #5C0A13 100%);
+  }
+}

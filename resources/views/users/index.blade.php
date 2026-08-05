@@ -1,0 +1,693 @@
+@extends('layouts.app')
+
+@section('title', 'Manajemen Pengguna')
+
+@section('content')
+<div class="flex min-h-screen">
+    @include('components.sidebar')
+    
+    <div class="flex-1 min-w-0">
+        @include('components.topbar', ['title' => 'Manajemen Pengguna'])
+        
+        <div class="p-[26px] animate-fade-in" x-data="usersManager()" x-init="init()">
+            <!-- Filter & Actions -->
+            <div class="flex flex-wrap justify-between items-center gap-2.5 mb-4">
+                <div class="flex flex-wrap gap-2.5">
+                    <div class="relative">
+                        <svg style="width:14px; height:14px; position:absolute; left:10px; top:11px; color:#948F99;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text" 
+                               x-model="search" 
+                               placeholder="Cari nama atau email..." 
+                               style="width:240px; padding:9px 11px 9px 32px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;">
+                    </div>
+                    <select x-model="roleFilter" style="width:170px; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;">
+                        <option value="Semua">Semua Role</option>
+                        <option value="Lead Engineer">Lead Engineer</option>
+                        <option value="Engineer L1">Engineer L1</option>
+                        <option value="Engineer L2">Engineer L2</option>
+                    </select>
+                    <select x-model="statusFilter" style="width:150px; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;">
+                        <option value="Semua">Semua Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                
+                @if(auth()->user()->hasRole('Lead Engineer'))
+                <button @click="openModal()" style="background:#C81E2C; color:white; box-shadow:0 8px 20px rgba(200,30,44,0.24); padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Tambah User
+                </button>
+                @endif
+            </div>
+
+            <!-- Users Table -->
+            <div style="background:white; border:1px solid #E7E5E3; border-radius:12px; box-shadow:0 1px 2px rgba(14,13,18,0.05); overflow:hidden;">
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+                        <thead>
+                            <tr style="background:#F1F0EE;">
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Nama</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Email</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">No. HP</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Role</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Jabatan</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Sertifikasi</th>
+                                <th style="text-align:left; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Status</th>
+                                <th style="text-align:right; padding:12px 16px; font-size:11.5px; font-weight:600; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="user in paginatedUsers" :key="user.id">
+                                <tr style="border-top:1px solid #EFEDEB; transition:background 0.12s ease;" @mouseenter="this.style.background='#F1F0EE'" @mouseleave="this.style.background='transparent'">
+                                    <td style="padding:10px 16px;">
+                                        <div style="display:flex; align-items:center; gap:9px;">
+                                            <div style="width:28px; height:28px; border-radius:50%; background:#C81E2C; color:white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; flex-shrink:0;">
+                                                <span x-text="user.name ? user.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : '?'"></span>
+                                            </div>
+                                            <span style="font-weight:500; color:#17151C;" x-text="user.name"></span>
+                                        </div>
+                                    </td>
+                                    <td style="padding:10px 16px; color:#3D3A44;" x-text="user.email"></td>
+                                    <td style="padding:10px 16px; color:#3D3A44; font-family:'IBM Plex Mono',monospace; font-size:12.5px;" x-text="user.phone"></td>
+                                    <td style="padding:10px 16px; color:#3D3A44;" x-text="user.role_name"></td>
+                                    <td style="padding:10px 16px; color:#3D3A44;" x-text="user.position"></td>
+                                    <!-- Sertifikasi Status -->
+                                    <td style="padding:10px 16px;">
+                                        <template x-if="user.has_certification">
+                                            <div style="display:flex; align-items:center; gap:8px;">
+                                                <span x-html="getCertificationStatusBadge(user.certification_status)"></span>
+                                                @if(auth()->user()->hasRole('Lead Engineer'))
+                                                <button @click="viewCertification(user)" 
+                                                        style="background:none; border:none; cursor:pointer; color:#C81E2C; padding:4px;">
+                                                    <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                    </svg>
+                                                </button>
+                                                @endif
+                                            </div>
+                                        </template>
+                                        <template x-if="!user.has_certification">
+                                            <span style="color:#948F99; font-size:12px;">Belum upload</span>
+                                        </template>
+                                    </td>
+                                    <td style="padding:10px 16px;" x-html="getStatusBadge(user.status)"></td>
+                                    <td style="padding:10px 16px;">
+                                        <div style="display:flex; justify-content:flex-end; gap:10px;">
+                                            @if(auth()->user()->hasRole('Lead Engineer'))
+                                            <button @click="toggleStatus(user)" 
+                                                    style="background:none; border:none; cursor:pointer; padding:6px; border-radius:8px;"
+                                                    :style="user.status === 'Active' ? 'color:#1B7A46;' : 'color:#948F99;'">
+                                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v4m0 4v4m0 4v4"/>
+                                                </svg>
+                                            </button>
+                                            <button @click="editUser(user)" style="background:none; border:none; cursor:pointer; color:#75727C; padding:6px; border-radius:8px;">
+                                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                            <button @click="deleteUser(user)" 
+                                                    style="background:none; border:none; cursor:pointer; color:#C81E2C; padding:6px; border-radius:8px;"
+                                                    :disabled="user.id === {{ auth()->id() }}">
+                                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div x-show="filteredUsers.length === 0" style="text-align:center; padding:48px 20px; color:#75727C;">
+                    <div style="width:44px; height:44px; border-radius:10px; background:#F1F0EE; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                        <svg style="width:20px; height:20px; opacity:0.6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </div>
+                    <p style="font-size:13.5px; margin:0;">Tidak ada user yang cocok dengan filter</p>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid #EFEDEB;">
+                    <span style="font-size:12px; color:#75727C;">
+                        Menampilkan <span x-text="startIndex + 1"></span> - <span x-text="Math.min(endIndex, filteredUsers.length)"></span> dari <span x-text="filteredUsers.length"></span> user
+                    </span>
+                    <div style="display:flex; gap:6px;">
+                        <button @click="currentPage--" 
+                                :disabled="currentPage === 1"
+                                style="padding:6px 10px; border-radius:8px; border:1px solid #E7E5E3; background:white; cursor:pointer;"
+                                :style="currentPage === 1 ? 'opacity:0.4; cursor:default;' : ''">
+                            <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <span style="padding:6px 12px; border-radius:8px; border:1px solid #E7E5E3; background:white; font-size:12px; font-weight:600; color:#17151C; text-align:center; min-width:40px;" x-text="currentPage"></span>
+                        <button @click="currentPage++" 
+                                :disabled="currentPage === totalPages"
+                                style="padding:6px 10px; border-radius:8px; border:1px solid #E7E5E3; background:white; cursor:pointer;"
+                                :style="currentPage === totalPages ? 'opacity:0.4; cursor:default;' : ''">
+                            <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- MODAL - USER FORM (TAMBAH/EDIT) -->
+            <!-- ============================================================ -->
+            <div x-show="modalOpen" 
+                 x-cloak
+                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px);"
+                 @click.self="modalOpen = false">
+                
+                <div style="background:white; border-radius:16px; width:640px; max-width:100%; max-height:88vh; overflow-y:auto; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12); margin:auto; position:relative;">
+                    
+                    <!-- Modal Header -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; position:sticky; top:0; background:white; border-bottom:1px solid #E7E5E3; z-index:1; border-radius:16px 16px 0 0;">
+                        <h3 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; color:#17151C;" x-text="modalTitle"></h3>
+                        <button @click="modalOpen = false" style="background:none; border:none; cursor:pointer; color:#75727C; padding:6px; border-radius:8px;">
+                            <svg style="width:20px; height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div style="padding:22px;">
+                        <form @submit.prevent="saveUser">
+                            <div style="display:flex; flex-direction:column; gap:14px;">
+                                <div>
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Nama Lengkap</label>
+                                    <input type="text" x-model="form.name" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
+                                </div>
+                                <div>
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Email</label>
+                                    <input type="email" x-model="form.email" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
+                                </div>
+                                <div>
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Nomor HP</label>
+                                    <input type="text" x-model="form.phone" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;">
+                                </div>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                    <div>
+                                        <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Role</label>
+                                        <select x-model="form.role" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
+                                            <option value="Lead Engineer">Lead Engineer</option>
+                                            <option value="Engineer L1">Engineer L1</option>
+                                            <option value="Engineer L2">Engineer L2</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Status</label>
+                                        <select x-model="form.status" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">Jabatan</label>
+                                    <input type="text" x-model="form.position" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
+                                </div>
+
+                                <!-- UPLOAD SERTIFIKASI (UNTUK ENGINEER) -->
+                                <div>
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">
+                                        Sertifikasi
+                                        <span x-show="form.role !== 'Lead Engineer'" style="color:#C81E2C;"> *</span>
+                                    </label>
+                                    <div style="border:2px dashed #E7E5E3; border-radius:8px; padding:16px; text-align:center; background:#F9F9F7; transition:all 0.3s ease;" 
+                                         @dragover.prevent="$el.style.borderColor='#C81E2C'; $el.style.background='#FEF5F5';"
+                                         @dragleave.prevent="$el.style.borderColor='#E7E5E3'; $el.style.background='#F9F9F7';"
+                                         @drop.prevent="handleFileDrop($event)">
+                                        <input type="file" 
+                                               @change="handleFileSelect($event)"
+                                               accept=".pdf,.jpg,.jpeg,.png"
+                                               style="display:none;" 
+                                               id="certFile">
+                                        <button type="button" 
+                                                @click="document.getElementById('certFile').click()"
+                                                style="background:none; border:none; cursor:pointer; width:100%;">
+                                            <svg style="width:32px; height:32px; margin:0 auto 8px; color:#C81E2C; opacity:0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            <p style="margin:0 0 4px; color:#17151C; font-weight:500;">Klik atau drag file ke sini</p>
+                                            <p style="margin:0; color:#948F99; font-size:12px;">PDF, JPG, PNG (Max 5MB)</p>
+                                        </button>
+                                    </div>
+                                    <div x-show="form.certification_file_name" style="margin-top:8px; padding:8px 12px; background:#E4F3EA; border-radius:8px; display:flex; align-items:center; gap:8px;">
+                                        <svg style="width:16px; height:16px; color:#1B7A46;" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                        </svg>
+                                        <span style="font-size:13px; color:#1B7A46; flex:1;" x-text="form.certification_file_name"></span>
+                                        <button type="button" @click="form.certification_file_name = ''" style="background:none; border:none; cursor:pointer; color:#1B7A46;">
+                                            <svg style="width:16px; height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div x-show="!editing || form.password">
+                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">
+                                        Password <span x-show="editing" style="color:#948F99; font-weight:400; text-transform:none;">(kosongkan jika tidak diubah)</span>
+                                    </label>
+                                    <input type="password" x-model="form.password" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" :required="!editing">
+                                </div>
+                            </div>
+                            
+                            <!-- BUTTONS -->
+                            <div style="display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
+                                <button type="submit" style="flex:1; justify-content:center; background:#C81E2C; color:white; box-shadow:0 8px 20px rgba(200,30,44,0.24); padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
+                                    Simpan
+                                </button>
+                                <button type="button" @click="modalOpen = false" style="flex:1; justify-content:center; background:white; color:#3D3A44; border:1px solid #E7E5E3; padding:10px 17px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
+                                    Batal
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- MODAL - LIHAT SERTIFIKASI (UNTUK LEAD) -->
+            <!-- ============================================================ -->
+            <div x-show="viewCertModal" 
+                 x-cloak
+                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px);"
+                 @click.self="viewCertModal = false">
+                
+                <div style="background:white; border-radius:16px; width:640px; max-width:100%; max-height:88vh; overflow-y:auto; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12);">
+                    
+                    <!-- Modal Header -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; position:sticky; top:0; background:white; border-bottom:1px solid #E7E5E3; z-index:1; border-radius:16px 16px 0 0;">
+                        <h3 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; color:#17151C;">
+                            Sertifikasi <span x-text="viewingUser.name" style="color:#C81E2C;"></span>
+                        </h3>
+                        <button @click="viewCertModal = false" style="background:none; border:none; cursor:pointer; color:#75727C; padding:6px; border-radius:8px;">
+                            <svg style="width:20px; height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div style="padding:22px;">
+                        <div style="margin-bottom:16px;">
+                            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">Status Sertifikasi</p>
+                            <div x-html="getCertificationStatusBadge(viewingUser.certification_status)"></div>
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">Tanggal Upload</p>
+                            <p style="margin:0; color:#3D3A44;" x-text="viewingUser.certification_uploaded_at || '-'"></p>
+                        </div>
+
+                        <div style="margin-bottom:20px;">
+                            <p style="margin:0 0 8px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">File Preview</p>
+                            <div style="border:1px solid #E7E5E3; border-radius:8px; padding:16px; background:#F9F9F7; text-align:center;">
+                                <iframe x-show="viewingUser.certification_file && viewingUser.certification_file.endsWith('.pdf')"
+                                        :src="'/storage/' + viewingUser.certification_file"
+                                        style="width:100%; height:400px; border:none; border-radius:8px;"></iframe>
+                                <img x-show="viewingUser.certification_file && !viewingUser.certification_file.endsWith('.pdf')"
+                                     :src="'/storage/' + viewingUser.certification_file"
+                                     style="max-width:100%; max-height:400px; border-radius:8px;">
+                            </div>
+                        </div>
+
+                        <!-- APPROVAL BUTTONS (HANYA UNTUK LEAD) -->
+                        <div x-show="viewingUser.certification_status === 'pending'" style="display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
+                            <button @click="approveCertification(viewingUser)" 
+                                    style="flex:1; justify-content:center; background:#1B7A46; color:white; padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
+                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Setujui
+                            </button>
+                            <button @click="rejectCertification(viewingUser)" 
+                                    style="flex:1; justify-content:center; background:#C81E2C; color:white; padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
+                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Tolak
+                            </button>
+                        </div>
+
+                        <div style="display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
+                            <a :href="'/storage/' + viewingUser.certification_file"
+                               download
+                               style="flex:1; text-align:center; background:#C81E2C; color:white; padding:10px 17px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:center; gap:7px;">
+                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Download
+                            </a>
+                            <button @click="viewCertModal = false" style="flex:1; background:white; color:#3D3A44; border:1px solid #E7E5E3; padding:10px 17px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer;">
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<style>
+    [x-cloak] { display: none !important; }
+    
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+</style>
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', function() {
+        Alpine.data('usersManager', function() {
+            return {
+                users: @json($users),
+                search: '',
+                roleFilter: 'Semua',
+                statusFilter: 'Semua',
+                currentPage: 1,
+                perPage: 5,
+                modalOpen: false,
+                viewCertModal: false,
+                editing: false,
+                viewingUser: {},
+                form: {
+                    id: null,
+                    name: '',
+                    email: '',
+                    phone: '',
+                    role: 'Engineer L1',
+                    status: 'Active',
+                    position: '',
+                    password: '',
+                    certification_file_name: '',
+                    certification_file: null,
+                },
+
+                init() {
+                    console.log(' Users Manager initialized!');
+                    console.log('Users:', this.users);
+                },
+
+                get filteredUsers() {
+                    return this.users.filter(u => {
+                        const matchSearch = u.name.toLowerCase().includes(this.search.toLowerCase()) || 
+                                           u.email.toLowerCase().includes(this.search.toLowerCase());
+                        const matchRole = this.roleFilter === 'Semua' || u.role_name === this.roleFilter;
+                        const matchStatus = this.statusFilter === 'Semua' || u.status === this.statusFilter;
+                        return matchSearch && matchRole && matchStatus;
+                    });
+                },
+
+                get totalPages() {
+                    return Math.max(1, Math.ceil(this.filteredUsers.length / this.perPage));
+                },
+
+                get startIndex() {
+                    return (this.currentPage - 1) * this.perPage;
+                },
+
+                get endIndex() {
+                    return Math.min(this.startIndex + this.perPage, this.filteredUsers.length);
+                },
+
+                get paginatedUsers() {
+                    return this.filteredUsers.slice(this.startIndex, this.endIndex);
+                },
+
+                get modalTitle() {
+                    return this.editing ? ' Edit User' : ' Tambah User';
+                },
+
+                openModal(user = null) {
+                    console.log(' Opening modal...');
+                    if (user) {
+                        this.editing = true;
+                        this.form = {
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            phone: user.phone || '',
+                            role: user.role_name,
+                            status: user.status,
+                            position: user.position || '',
+                            password: '',
+                            certification_file_name: user.certification_file ? user.certification_file.split('/').pop() : '',
+                            certification_file: null,
+                        };
+                    } else {
+                        this.editing = false;
+                        this.form = {
+                            id: null,
+                            name: '',
+                            email: '',
+                            phone: '',
+                            role: 'Engineer L1',
+                            status: 'Active',
+                            position: '',
+                            password: '',
+                            certification_file_name: '',
+                            certification_file: null,
+                        };
+                    }
+                    this.modalOpen = true;
+                },
+
+                editUser(user) {
+                    this.openModal(user);
+                },
+
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.form.certification_file = file;
+                        this.form.certification_file_name = file.name;
+                    }
+                },
+
+                handleFileDrop(event) {
+                    const files = event.dataTransfer.files;
+                    if (files.length > 0) {
+                        const file = files[0];
+                        if (['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) && file.size <= 5 * 1024 * 1024) {
+                            this.form.certification_file = file;
+                            this.form.certification_file_name = file.name;
+                        } else {
+                            this.showToast(' Format file tidak sesuai atau ukuran terlalu besar');
+                        }
+                    }
+                },
+
+                async saveUser() {
+                    console.log('💾 SAVE USER CALLED!');
+                    
+                    try {
+                        const url = this.editing ? `/users/${this.form.id}` : '/users';
+                        const method = this.editing ? 'PUT' : 'POST';
+                        
+                        // Gunakan FormData untuk menangani file upload
+                        const formData = new FormData();
+                        formData.append('name', this.form.name);
+                        formData.append('email', this.form.email);
+                        formData.append('phone', this.form.phone);
+                        formData.append('position', this.form.position);
+                        formData.append('role', this.form.role);
+                        formData.append('status', this.form.status);
+                        
+                        if (this.form.password) {
+                            formData.append('password', this.form.password);
+                        }
+                        
+                        if (this.form.certification_file) {
+                            formData.append('certification_file', this.form.certification_file);
+                        }
+
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log(' User saved:', data);
+                            
+                            if (this.editing) {
+                                const index = this.users.findIndex(u => u.id === this.form.id);
+                                this.users[index] = data;
+                            } else {
+                                this.users.push(data);
+                            }
+                            this.modalOpen = false;
+                            this.showToast(' User berhasil ' + (this.editing ? 'diperbarui' : 'ditambahkan') + '!');
+                        } else {
+                            const error = await response.json();
+                            this.showToast(' Error: ' + (error.message || 'Terjadi kesalahan'));
+                        }
+                    } catch (error) {
+                        console.error(' Error saving user:', error);
+                        this.showToast(' Terjadi kesalahan saat menyimpan user.');
+                    }
+                },
+
+                async deleteUser(user) {
+                    if (user.id === {{ auth()->id() }}) {
+                        this.showToast(' Anda tidak dapat menghapus akun sendiri!');
+                        return;
+                    }
+                    if (!confirm(`Apakah Anda yakin ingin menghapus user "${user.name}"?`)) return;
+                    
+                    try {
+                        const response = await fetch(`/users/${user.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        if (response.ok) {
+                            this.users = this.users.filter(u => u.id !== user.id);
+                            this.showToast(' User berhasil dihapus!');
+                        }
+                    } catch (error) {
+                        console.error(' Error deleting user:', error);
+                        this.showToast(' Terjadi kesalahan saat menghapus user.');
+                    }
+                },
+
+                async toggleStatus(user) {
+                    try {
+                        const response = await fetch(`/users/${user.id}/toggle-status`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const index = this.users.findIndex(u => u.id === user.id);
+                            this.users[index] = data;
+                            this.showToast(` Status user berhasil diubah menjadi ${data.status}!`);
+                        }
+                    } catch (error) {
+                        console.error(' Error toggling user status:', error);
+                        this.showToast(' Terjadi kesalahan saat mengubah status user.');
+                    }
+                },
+
+                viewCertification(user) {
+                    this.viewingUser = user;
+                    this.viewCertModal = true;
+                },
+
+                async approveCertification(user) {
+                    try {
+                        const response = await fetch(`/users/${user.id}/approve-certification`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const index = this.users.findIndex(u => u.id === user.id);
+                            this.users[index].certification_status = 'approved';
+                            this.viewingUser.certification_status = 'approved';
+                            this.showToast(' Sertifikasi berhasil disetujui!');
+                        }
+                    } catch (error) {
+                        console.error(' Error approving certification:', error);
+                        this.showToast(' Terjadi kesalahan saat menyetujui sertifikasi.');
+                    }
+                },
+
+                async rejectCertification(user) {
+                    try {
+                        const response = await fetch(`/users/${user.id}/reject-certification`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const index = this.users.findIndex(u => u.id === user.id);
+                            this.users[index].certification_status = 'rejected';
+                            this.viewingUser.certification_status = 'rejected';
+                            this.showToast(' Sertifikasi berhasil ditolak!');
+                        }
+                    } catch (error) {
+                        console.error(' Error rejecting certification:', error);
+                        this.showToast(' Terjadi kesalahan saat menolak sertifikasi.');
+                    }
+                },
+
+                getStatusBadge(status) {
+                    const styles = {
+                        'Active': { bg: '#E4F3EA', fg: '#1B7A46', dot: '#1B7A46' },
+                        'Inactive': { bg: '#EFEDEC', fg: '#75727C', dot: '#948F99' }
+                    };
+                    const s = styles[status] || styles['Inactive'];
+                    return `<span style="background: ${s.bg}; color: ${s.fg}; font-size: 11.5px; font-weight: 700; padding: 4px 10px 4px 8px; border-radius: 20px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.1px;">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.dot}; flex-shrink: 0;"></span>
+                                ${status}
+                            </span>`;
+                },
+
+                getCertificationStatusBadge(status) {
+                    const styles = {
+                        'approved': { bg: '#E4F3EA', fg: '#1B7A46', dot: '#1B7A46', text: 'Disetujui' },
+                        'pending': { bg: '#FFF3E0', fg: '#E67E22', dot: '#E67E22', text: 'Menunggu' },
+                        'rejected': { bg: '#FFEBEE', fg: '#C81E2C', dot: '#C81E2C', text: 'Ditolak' }
+                    };
+                    const s = styles[status] || styles['pending'];
+                    return `<span style="background: ${s.bg}; color: ${s.fg}; font-size: 11.5px; font-weight: 700; padding: 4px 10px 4px 8px; border-radius: 20px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.1px;">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.dot}; flex-shrink: 0;"></span>
+                                ${s.text}
+                            </span>`;
+                },
+
+                showToast(message) {
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed; bottom:16px; right:16px; background:#17151C; color:white; padding:12px 24px; border-radius:8px; box-shadow:0 16px 40px rgba(14,13,18,0.12); font-size:14px; animation:fadeInUp 0.18s ease; z-index:999999;';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transition = 'opacity 0.3s ease';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+            };
+        });
+    });
+</script>
+@endpush
+@endsection

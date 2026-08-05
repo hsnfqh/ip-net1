@@ -1,0 +1,119 @@
+<?php
+// app/Models/User.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone',
+        'position',
+        'status',
+        'avatar',
+        'last_login_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'last_login_at' => 'datetime',
+    ];
+
+    // Relationships
+    public function projects()
+    {
+        return $this->hasMany(Project::class, 'created_by');
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class, 'engineer_id');
+    }
+
+    public function tasksCreated()
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'engineer_id');
+    }
+
+    public function schedulesCreated()
+    {
+        return $this->hasMany(Schedule::class, 'created_by');
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'Active');
+    }
+
+    public function scopeEngineers($query)
+    {
+        return $query->whereHas('roles', function($q) {
+            $q->whereIn('name', ['Engineer L1', 'Engineer L2']);
+        });
+    }
+
+    public function scopeLeadEngineer($query)
+    {
+        return $query->whereHas('roles', function($q) {
+            $q->where('name', 'Lead Engineer');
+        });
+    }
+
+    // Accessors
+    public function getAvatarUrlAttribute()
+    {
+        if ($this->avatar && Storage::disk('public')->exists('avatars/' . $this->avatar)) {
+            return Storage::url('avatars/' . $this->avatar);
+        }
+        
+        $initials = collect(explode(' ', $this->name))
+            ->map(fn($word) => substr($word, 0, 1))
+            ->take(2)
+            ->join('')
+            ->toUpper();
+
+        return "https://ui-avatars.com/api/?name={$initials}&background=7A0D18&color=ffffff&size=64";
+    }
+
+    public function getInitialsAttribute()
+    {
+        return collect(explode(' ', $this->name))
+            ->map(fn($word) => substr($word, 0, 1))
+            ->take(2)
+            ->join('')
+            ->toUpper();
+    }
+
+    public function getRoleLabelAttribute()
+    {
+        return $this->roles->first()?->name ?? 'User';
+    }
+
+    public function getIsActiveAttribute()
+    {
+        return $this->status === 'Active';
+    }
+}
