@@ -11,7 +11,9 @@
 
         <div class="p-4 sm:p-[26px] animate-fade-in"
              x-data="tasksManager()"
-             x-init="init()">
+             x-init="init()"
+             data-current-user-id="{{ $currentUserId }}"
+             data-is-lead="{{ $isLead ? 'true' : 'false' }}">
 
             <!-- ========================================================== -->
             <!-- HEADER - FILTER (WRAP DI LAYAR SEMPIT) -->
@@ -40,6 +42,7 @@
                         <option value="Low">Low</option>
                     </select>
 
+                    @if($isLead)
                     <select x-model="filterEngineer" class="filter-select"
                             onfocus="this.style.borderColor='#C81E2C'" onblur="this.style.borderColor='#E7E5E3'">
                         <option value="">Semua Engineer</option>
@@ -47,6 +50,7 @@
                             <option :value="engineer.id" x-text="engineer.name"></option>
                         </template>
                     </select>
+                    @endif
                 </div>
 
                 @if(auth()->user()->hasRole('Lead Engineer'))
@@ -69,13 +73,13 @@
             <div class="kanban-board">
                 <template x-for="column in ['Assigned', 'In Progress', 'Waiting Review', 'Completed']" :key="column">
                     <div class="kanban-col">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                        <div class="kanban-col-head">
                             <span style="font-size:12px; font-weight:700; color:#3D3A44; text-transform:uppercase; letter-spacing:0.5px;" x-text="column"></span>
                             <span style="font-size:11px; background:#F1F0EE; color:#75727C; padding:1px 8px; border-radius:12px; font-weight:600;"
                                   x-text="getFilteredTasksByStatus(column).length"></span>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:10px;">
-                            <template x-for="task in getPaginatedTasks(column)" :key="task.id">
+                        <div class="kanban-col-body">
+                            <template x-for="task in getFilteredTasksByStatus(column)" :key="task.id">
                                 <div style="background:white; border:1px solid #E7E5E3; border-radius:12px; padding:14px; box-shadow:0 1px 2px rgba(14,13,18,0.05); transition:all 0.15s ease;"
                                      onmouseenter="this.style.boxShadow='0 4px 16px rgba(14,13,18,0.06)'"
                                      onmouseleave="this.style.boxShadow='0 1px 2px rgba(14,13,18,0.05)'">
@@ -95,17 +99,36 @@
                                             </div>
                                             <span style="font-size:11px; color:#3D3A44; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" x-text="task.engineer?.name"></span>
                                         </div>
-                                        <span style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#75727C; white-space:nowrap;" x-text="task.deadline?.slice(5)"></span>
+                                        <span style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#75727C; white-space:nowrap;" x-text="formatDeadline(task.deadline)"></span>
                                     </div>
 
                                     <div style="width:100%; background:#EFEDEB; border-radius:20px; height:5px; overflow:hidden;">
                                         <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="'width: ' + (task.progress || 0) + '%'"></div>
                                     </div>
 
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; font-size:10.5px; color:#75727C;">
+                                        <span>Progress: <strong style="color:#C81E2C;" x-text="(task.progress || 0) + '%'"></strong></span>
+                                        <template x-if="task.doc_file || task.attachments > 0">
+                                            <span style="display:inline-flex; align-items:center; gap:3px; color:#1B7A46; font-weight:600; cursor:pointer;" @click="openDetailModal(task)">
+                                                <svg style="width:12px; height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                                Foto/Dokumen
+                                            </span>
+                                        </template>
+                                    </div>
+
                                     @if(auth()->user()->hasRole('Lead Engineer'))
                                     <div style="display:flex; gap:6px; margin-top:10px;">
+                                        <button @click="openDetailModal(task)"
+                                                style="flex:1; padding:6px 0; border-radius:6px; border:1px solid #E7E5E3; background:#F8F7F6; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer; transition:all 0.15s ease; font-size:11px; font-weight:600; color:#3D3A44;"
+                                                onmouseover="this.style.background='#EFEDEB'" onmouseout="this.style.background='#F8F7F6'">
+                                            <svg style="width:13px; height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            Detail
+                                        </button>
                                         <button @click="editTask(task)"
-                                                style="flex:1; padding:6px 0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; gap:5px; cursor:pointer; transition:all 0.15s ease; font-size:11px; font-weight:600; color:#3D3A44;"
+                                                style="flex:1; padding:6px 0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer; transition:all 0.15s ease; font-size:11px; font-weight:600; color:#3D3A44;"
                                                 onmouseover="this.style.background='#F1F0EE'" onmouseout="this.style.background='white'">
                                             <svg style="width:12px; height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -121,34 +144,48 @@
                                         </button>
                                     </div>
                                     @else
-                                    <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
-                                        <select x-model="task.status" @change="updateTask(task)" style="flex:1 1 120px; min-width:0; padding:5px 8px; border-radius:6px; border:1px solid #E7E5E3; font-size:11px; background:white; color:#3D3A44; cursor:pointer; outline:none;">
-                                            <option value="Assigned">Assigned</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Waiting Review">Waiting Review</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
-                                        <button @click="openProgressModal(task)" style="width:32px; flex-shrink:0; padding:5px 0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#F1F0EE'" onmouseout="this.style.background='white'">
-                                            <svg style="width:13px; height:13px; color:#948F99;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                            </svg>
-                                        </button>
-                                    </div>
+                                    {{-- Task milik user ini: bisa ubah status & progress --}}
+                                    <template x-if="task.engineer_id == currentUserId">
+                                        <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+                                            <select x-model="task.status" @change="updateTask(task)" style="flex:1 1 100px; min-width:0; padding:5px 8px; border-radius:6px; border:1px solid #E7E5E3; font-size:11px; background:white; color:#3D3A44; cursor:pointer; outline:none;">
+                                                <option value="Assigned">Assigned</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Waiting Review">Waiting Review</option>
+                                                <option value="Completed">Completed</option>
+                                            </select>
+                                            <button @click="openProgressModal(task)" style="width:32px; flex-shrink:0; padding:5px 0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease;" title="Upload Progress / Dokumentasi" onmouseover="this.style.background='#F1F0EE'" onmouseout="this.style.background='white'">
+                                                <svg style="width:13px; height:13px; color:#948F99;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                                </svg>
+                                            </button>
+                                            <button @click="openDetailModal(task)" style="width:32px; flex-shrink:0; padding:5px 0; border-radius:6px; border:1px solid #E7E5E3; background:#F8F7F6; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease;" title="Lihat Detail" onmouseover="this.style.background='#EFEDEB'" onmouseout="this.style.background='#F8F7F6'">
+                                                <svg style="width:13px; height:13px; color:#3D3A44;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    {{-- Task milik engineer lain --}}
+                                    <template x-if="task.engineer_id != currentUserId">
+                                        <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
+                                            <div style="flex:1; padding:6px 10px; border-radius:6px; background:#F8F7F6; border:1px solid #EFEDEB; font-size:11px; color:#B7B3BB; text-align:center;">
+                                                Ditugaskan ke engineer lain
+                                            </div>
+                                            <button @click="openDetailModal(task)" style="width:32px; height:28px; flex-shrink:0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="Lihat Detail">
+                                                <svg style="width:13px; height:13px; color:#3D3A44;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
                                     @endif
                                 </div>
                             </template>
 
-                            <!-- LOAD MORE BUTTON -->
-                            <button x-show="getPaginatedTasks(column).length < getFilteredTasksByStatus(column).length"
-                                    @click="loadMoreTasks(column)"
-                                    style="padding:8px 12px; border-radius:8px; border:1px dashed #E7E5E3; background:#F8F7F6; color:#75727C; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:4px;"
-                                    onmouseover="this.style.background='#EFEDEB'"
-                                    onmouseout="this.style.background='#F8F7F6'">
-                                <span x-text="'Muat Lebih Banyak (' + (getFilteredTasksByStatus(column).length - getPaginatedTasks(column).length) + ')'"></span>
-                            </button>
-
                             <div x-show="getFilteredTasksByStatus(column).length === 0"
-                                 style="font-size:12px; color:#B7B3BB; padding:10px 4px; text-align:center;">
+                                 style="font-size:12px; color:#B7B3BB; padding:20px 4px; text-align:center;">
                                 Tidak ada task.
                             </div>
                         </div>
@@ -225,14 +262,20 @@
                                 @if(false)
                                 {{-- Status hanya diedit lewat modal saat mode edit, dan hanya oleh Lead Engineer --}}
                                 @endif
-                                <div x-show="editing">
-                                    <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Status</label>
-                                    <select x-model="form.status" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white; transition:border 0.15s ease; box-sizing:border-box;">
-                                        <option value="Assigned">Assigned</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Waiting Review">Waiting Review</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
+                                <div x-show="editing" class="modal-grid-2">
+                                    <div>
+                                        <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Status</label>
+                                        <select x-model="form.status" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white; transition:border 0.15s ease; box-sizing:border-box;">
+                                            <option value="Assigned">Assigned</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Waiting Review">Waiting Review</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Progress (<span x-text="form.progress"></span>%)</label>
+                                        <input type="range" min="0" max="100" x-model="form.progress" style="width:100%; margin-top:8px; accent-color:#C81E2C;">
+                                    </div>
                                 </div>
                                 <div>
                                     <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Deskripsi</label>
@@ -288,12 +331,14 @@
                         </div>
                         <div>
                             <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Upload Dokumentasi</label>
-                            <div style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#75727C; outline:none; background:white; display:flex; align-items:center; gap:8px; cursor:pointer; transition:border 0.15s ease; box-sizing:border-box;">
+                            <label style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:13px; color:#75727C; background:white; display:flex; align-items:center; gap:8px; cursor:pointer; transition:border 0.15s ease; box-sizing:border-box;" onmouseover="this.style.borderColor='#C81E2C'" onmouseout="this.style.borderColor='#E7E5E3'">
                                 <svg style="width:14px; height:14px; flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                                 </svg>
-                                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Pilih file foto/dokumen pekerjaan...</span>
-                            </div>
+                                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" x-text="progressForm.fileName || 'Pilih file foto/dokumen pekerjaan...'"></span>
+                                <input type="file" id="doc_file_input" accept="image/*,.pdf,.doc,.docx" style="display:none;" @change="handleFileChange($event)">
+                            </label>
+                            <p x-show="progressForm.fileName" style="font-size:10.5px; color:#1B7A46; margin-top:4px; margin-bottom:0;">✓ File siap diupload</p>
                         </div>
                         <button @click="saveProgress()"
                                 style="width:100%; justify-content:center; background:#C81E2C; color:white; box-shadow:0 8px 20px rgba(200,30,44,0.24); padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; margin-top:16px; display:flex; align-items:center; gap:7px; transition:all 0.15s ease;"
@@ -337,6 +382,102 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ========================================================== -->
+            <!-- TASK DETAIL & DOCUMENTATION MODAL -->
+            <!-- ========================================================== -->
+            <div x-show="detailModalOpen"
+                 x-cloak
+                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(2px);"
+                 @click.self="detailModalOpen = false">
+
+                <div style="background:white; border-radius:16px; width:520px; max-width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(14,13,18,0.15); margin:auto; position:relative; animation:fadeInUp 0.2s ease;">
+
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; position:sticky; top:0; background:white; border-bottom:1px solid #E7E5E3; border-radius:16px 16px 0 0;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h3 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; color:#17151C;">Detail & Dokumentasi Task</h3>
+                            <span style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#75727C; background:#F8F7F6; padding:2px 8px; border-radius:4px;" x-text="'#' + String(selectedTask?.id || 0).padStart(3, '0')"></span>
+                        </div>
+                        <button @click="detailModalOpen = false" style="background:none; border:none; cursor:pointer; color:#75727C; padding:6px; border-radius:8px; transition:all 0.15s ease;" onmouseover="this.style.background='#F1F0EE'" onmouseout="this.style.background='transparent'">
+                            <svg style="width:20px; height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div style="padding:18px;" x-show="selectedTask">
+                        <h4 style="margin:0 0 4px; font-size:15px; font-weight:600; color:#17151C;" x-text="selectedTask?.title"></h4>
+                        <p style="margin:0 0 14px; font-size:12px; color:#75727C;" x-text="selectedTask?.project?.name"></p>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; background:#F8F7F6; padding:12px; border-radius:8px; font-size:12px;">
+                            <div>
+                                <span style="color:#75727C; font-weight:500;">Assignee:</span>
+                                <strong style="color:#17151C; display:block;" x-text="selectedTask?.engineer?.name || '-'"></strong>
+                            </div>
+                            <div>
+                                <span style="color:#75727C; font-weight:500;">Priority:</span>
+                                <span style="display:block;" x-html="getPriorityFlag(selectedTask?.priority)"></span>
+                            </div>
+                            <div>
+                                <span style="color:#75727C; font-weight:500;">Status:</span>
+                                <strong style="color:#C81E2C; display:block;" x-text="selectedTask?.status"></strong>
+                            </div>
+                            <div>
+                                <span style="color:#75727C; font-weight:500;">Deadline:</span>
+                                <strong style="color:#17151C; display:block;" x-text="formatDeadline(selectedTask?.deadline)"></strong>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div style="margin-bottom:16px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                <span style="font-weight:600; color:#3D3A44;">Progress Pengerjaan</span>
+                                <span style="font-weight:700; color:#C81E2C;" x-text="(selectedTask?.progress || 0) + '%'"></span>
+                            </div>
+                            <div style="width:100%; background:#EFEDEB; border-radius:20px; height:8px; overflow:hidden;">
+                                <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="'width: ' + (selectedTask?.progress || 0) + '%'"></div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div style="margin-bottom:16px;" x-show="selectedTask?.description">
+                            <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase;">Deskripsi</label>
+                            <p style="margin:0; font-size:13px; color:#3D3A44; background:#F9F9F8; padding:10px; border-radius:8px; white-space:pre-line;" x-text="selectedTask?.description"></p>
+                        </div>
+
+                        <!-- Uploaded Proof / Photo Documentation -->
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase;">Dokumentasi Foto / File Upload</label>
+
+                            <template x-if="selectedTask?.doc_file">
+                                <div>
+                                    <!-- Image Preview if image -->
+                                    <div x-show="selectedTask.doc_file.match(/\.(jpg|jpeg|png|gif|webp)$/i)" style="margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid #E7E5E3; background:#17151C; text-align:center;">
+                                        <img :src="'/storage/' + selectedTask.doc_file" style="max-width:100%; max-height:300px; object-fit:contain; margin:auto; display:block;" alt="Dokumentasi Pekerjaan">
+                                    </div>
+
+                                    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#E4F3EA; border-radius:8px; gap:8px;">
+                                        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                                            <svg style="width:18px; height:18px; color:#1B7A46; flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            <span style="font-size:12px; font-weight:600; color:#1B7A46; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" x-text="selectedTask.doc_file.split('/').pop()"></span>
+                                        </div>
+                                        <a :href="'/storage/' + selectedTask.doc_file" target="_blank" download style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:#1B7A46; background:white; padding:5px 12px; border-radius:6px; border:1px solid #1B7A46; text-decoration:none; flex-shrink:0;">
+                                            <svg style="width:13px; height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                            Buka / Unduh
+                                        </a>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="!selectedTask?.doc_file">
+                                <div style="padding:16px; border:1px dashed #E7E5E3; border-radius:8px; text-align:center; color:#948F99; font-size:12px;">
+                                    Belum ada dokumentasi foto/file yang diupload untuk task ini.
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -371,16 +512,64 @@
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 14px;
+        align-items: start;
     }
 
-    /* Tablet: 2 kolom, tetap full info, cuma reflow ke bawah */
+    .kanban-col {
+        background: #F8F7F6;
+        border-radius: 12px;
+        border: 1px solid #EFEDEB;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 200px);
+        min-height: 200px;
+        overflow: hidden;
+    }
+
+    .kanban-col-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 12px 10px;
+        flex-shrink: 0;
+        background: #F8F7F6;
+        border-bottom: 1px solid #EFEDEB;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .kanban-col-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 10px 12px;
+        overflow-y: auto;
+        flex: 1;
+        scrollbar-width: thin;
+        scrollbar-color: #E7E5E3 transparent;
+    }
+
+    .kanban-col-body::-webkit-scrollbar {
+        width: 4px;
+    }
+    .kanban-col-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .kanban-col-body::-webkit-scrollbar-thumb {
+        background: #E7E5E3;
+        border-radius: 99px;
+    }
+    .kanban-col-body::-webkit-scrollbar-thumb:hover {
+        background: #C7C4CD;
+    }
+
+    /* Tablet: 2 kolom */
     @media (max-width: 1024px) {
         .kanban-board {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
-    /* Mobile: kolom di-scroll horizontal (gaya Trello/Jira), tidak ada info yang hilang */
+    /* Mobile: kolom di-scroll horizontal (gaya Trello/Jira) */
     @media (max-width: 640px) {
         .kanban-board {
             display: flex;
@@ -392,6 +581,7 @@
         .kanban-col {
             flex: 0 0 88%;
             scroll-snap-align: start;
+            max-height: calc(100vh - 180px);
         }
     }
 
@@ -416,10 +606,14 @@
                 tasks: @json($tasks),
                 projects: @json($projects),
                 engineers: @json($engineers),
+                currentUserId: parseInt(document.querySelector('[data-current-user-id]')?.dataset?.currentUserId || '0'),
+                isLead: document.querySelector('[data-is-lead]')?.dataset?.isLead === 'true',
                 modalOpen: false,
                 progressModalOpen: false,
+                detailModalOpen: false,
                 confirmOpen: false,
                 confirmData: null,
+                selectedTask: null,
                 editing: false,
                 filterProject: '',
                 filterPriority: '',
@@ -438,15 +632,23 @@
                     priority: 'Medium',
                     deadline: '',
                     status: 'Assigned',
+                    progress: 0,
                     description: ''
                 },
                 progressForm: {
                     taskId: null,
-                    progress: 0
+                    progress: 0,
+                    fileName: '',
+                    docFile: null
                 },
 
                 init: function() {
                     console.log('Tasks Manager initialized!');
+                },
+
+                openDetailModal: function(task) {
+                    this.selectedTask = task;
+                    this.detailModalOpen = true;
                 },
 
                 getFilteredTasksByStatus: function(status) {
@@ -480,6 +682,7 @@
                         priority: 'Medium',
                         deadline: '',
                         status: 'Assigned',
+                        progress: 0,
                         description: ''
                     };
                     this.modalOpen = true;
@@ -495,6 +698,7 @@
                         priority: task.priority,
                         deadline: task.deadline ? task.deadline.split('T')[0] : '',
                         status: task.status,
+                        progress: task.progress || 0,
                         description: task.description || ''
                     };
                     this.modalOpen = true;
@@ -508,7 +712,20 @@
                 openProgressModal: function(task) {
                     this.progressForm.taskId = task.id;
                     this.progressForm.progress = task.progress || 0;
+                    this.progressForm.fileName = '';
+                    this.progressForm.docFile = null;
+                    // Reset file input
+                    var inp = document.getElementById('doc_file_input');
+                    if (inp) inp.value = '';
                     this.progressModalOpen = true;
+                },
+
+                handleFileChange: function(event) {
+                    var file = event.target.files[0];
+                    if (file) {
+                        this.progressForm.docFile = file;
+                        this.progressForm.fileName = file.name;
+                    }
                 },
 
                 saveTask: async function() {
@@ -565,6 +782,11 @@
                         });
 
                         if (response.ok) {
+                            var data = await response.json();
+                            if (data) {
+                                task.progress = data.progress;
+                                task.status = data.status;
+                            }
                             this.showToast('Task berhasil diperbarui!');
                         }
                     } catch (error) {
@@ -601,25 +823,40 @@
 
                 saveProgress: async function() {
                     try {
+                        var formData = new FormData();
+                        formData.append('progress', this.progressForm.progress);
+                        formData.append('_method', 'PUT'); // method spoofing
+                        if (this.progressForm.docFile) {
+                            formData.append('doc_file', this.progressForm.docFile);
+                        }
+
                         var response = await fetch('/tasks/' + this.progressForm.taskId, {
-                            method: 'PUT',
+                            method: 'POST', // POST + _method=PUT untuk multipart
                             headers: {
-                                'Content-Type': 'application/json',
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             },
-                            body: JSON.stringify({
-                                progress: this.progressForm.progress
-                            })
+                            body: formData
                         });
 
                         if (response.ok) {
+                            var data = await response.json();
                             var task = this.tasks.find(function(t) {
                                 return t.id === this.progressForm.taskId;
                             }.bind(this));
-                            if (task) task.progress = this.progressForm.progress;
+                            if (task && data) {
+                                task.progress = data.progress !== undefined ? data.progress : parseInt(this.progressForm.progress);
+                                task.doc_file = data.doc_file !== undefined ? data.doc_file : task.doc_file;
+                                task.attachments = data.attachments !== undefined ? data.attachments : task.attachments;
+                            }
                             this.progressModalOpen = false;
-                            this.showToast('Progress berhasil diperbarui!');
+                            var msg = this.progressForm.docFile
+                                ? 'Progress & dokumentasi berhasil disimpan!'
+                                : 'Progress berhasil diperbarui!';
+                            this.showToast(msg);
+                        } else {
+                            var err = await response.json();
+                            this.showToast('Error: ' + (err.message || 'Terjadi kesalahan'));
                         }
                     } catch (error) {
                         console.error('Error saving progress:', error);
@@ -642,6 +879,14 @@
                                 level +
                                 rail +
                             '</span>';
+                },
+
+                formatDeadline: function(deadline) {
+                    if (!deadline) return '';
+                    var d = new Date(deadline);
+                    if (isNaN(d.getTime())) return deadline;
+                    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    return String(d.getUTCDate()).padStart(2,'0') + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
                 },
 
                 showToast: function(message) {

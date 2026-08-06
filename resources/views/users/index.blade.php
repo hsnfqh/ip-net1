@@ -222,43 +222,6 @@
                                     <input type="text" x-model="form.position" style="width:100%; padding:9px 11px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white;" required>
                                 </div>
 
-                                <!-- UPLOAD SERTIFIKASI (UNTUK ENGINEER) -->
-                                <div>
-                                    <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">
-                                        Sertifikasi
-                                        <span x-show="form.role !== 'Lead Engineer'" style="color:#C81E2C;"> *</span>
-                                    </label>
-                                    <div style="border:2px dashed #E7E5E3; border-radius:8px; padding:16px; text-align:center; background:#F9F9F7; transition:all 0.3s ease;" 
-                                         @dragover.prevent="$el.style.borderColor='#C81E2C'; $el.style.background='#FEF5F5';"
-                                         @dragleave.prevent="$el.style.borderColor='#E7E5E3'; $el.style.background='#F9F9F7';"
-                                         @drop.prevent="handleFileDrop($event)">
-                                        <input type="file" 
-                                               @change="handleFileSelect($event)"
-                                               accept=".pdf,.jpg,.jpeg,.png"
-                                               style="display:none;" 
-                                               id="certFile">
-                                        <button type="button" 
-                                                @click="document.getElementById('certFile').click()"
-                                                style="background:none; border:none; cursor:pointer; width:100%;">
-                                            <svg style="width:32px; height:32px; margin:0 auto 8px; color:#C81E2C; opacity:0.7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                            </svg>
-                                            <p style="margin:0 0 4px; color:#17151C; font-weight:500;">Klik atau drag file ke sini</p>
-                                            <p style="margin:0; color:#948F99; font-size:12px;">PDF, JPG, PNG (Max 5MB)</p>
-                                        </button>
-                                    </div>
-                                    <div x-show="form.certification_file_name" style="margin-top:8px; padding:8px 12px; background:#E4F3EA; border-radius:8px; display:flex; align-items:center; gap:8px;">
-                                        <svg style="width:16px; height:16px; color:#1B7A46;" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                                        </svg>
-                                        <span style="font-size:13px; color:#1B7A46; flex:1;" x-text="form.certification_file_name"></span>
-                                        <button type="button" @click="form.certification_file_name = ''" style="background:none; border:none; cursor:pointer; color:#1B7A46;">
-                                            <svg style="width:16px; height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
 
                                 <div x-show="!editing || form.password">
                                     <label style="display:block; font-size:12px; font-weight:700; color:#75727C; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px;">
@@ -287,10 +250,10 @@
             <!-- ============================================================ -->
             <div x-show="viewCertModal" 
                  x-cloak
-                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px);"
+                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; overflow-y:auto; backdrop-filter:blur(2px);"
                  @click.self="viewCertModal = false">
                 
-                <div style="background:white; border-radius:16px; width:640px; max-width:100%; max-height:88vh; overflow-y:auto; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12);">
+                <div style="background:white; border-radius:16px; width:640px; max-width:calc(100% - 40px); max-height:calc(100vh - 80px); overflow-y:auto; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12); margin:40px auto;">
                     
                     <!-- Modal Header -->
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; position:sticky; top:0; background:white; border-bottom:1px solid #E7E5E3; z-index:1; border-radius:16px 16px 0 0;">
@@ -503,16 +466,19 @@
                     
                     try {
                         const url = this.editing ? `/users/${this.form.id}` : '/users';
-                        const method = this.editing ? 'PUT' : 'POST';
                         
                         // Gunakan FormData untuk menangani file upload
                         const formData = new FormData();
-                        formData.append('name', this.form.name);
-                        formData.append('email', this.form.email);
-                        formData.append('phone', this.form.phone);
-                        formData.append('position', this.form.position);
-                        formData.append('role', this.form.role);
-                        formData.append('status', this.form.status);
+                        formData.append('name', this.form.name || '');
+                        formData.append('email', this.form.email || '');
+                        formData.append('phone', this.form.phone || '');
+                        formData.append('position', this.form.position || '');
+                        formData.append('role', this.form.role || '');
+                        formData.append('status', this.form.status || 'Active');
+                        
+                        if (this.editing) {
+                            formData.append('_method', 'PUT');
+                        }
                         
                         if (this.form.password) {
                             formData.append('password', this.form.password);
@@ -523,7 +489,7 @@
                         }
 
                         const response = await fetch(url, {
-                            method: method,
+                            method: 'POST',
                             headers: {
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content

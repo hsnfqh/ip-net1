@@ -23,6 +23,10 @@ class User extends Authenticatable
         'status',
         'avatar',
         'last_login_at',
+        'certification',
+        'certification_file',
+        'certification_status',
+        'certification_uploaded_at',
     ];
 
     protected $hidden = [
@@ -34,6 +38,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'last_login_at' => 'datetime',
+        'certification_uploaded_at' => 'datetime',
     ];
 
     // Relationships
@@ -89,22 +94,20 @@ class User extends Authenticatable
             return Storage::url('avatars/' . $this->avatar);
         }
         
-        $initials = collect(explode(' ', $this->name))
+        $initials = strtoupper(collect(explode(' ', $this->name))
             ->map(fn($word) => substr($word, 0, 1))
             ->take(2)
-            ->join('')
-            ->toUpper();
+            ->join(''));
 
         return "https://ui-avatars.com/api/?name={$initials}&background=7A0D18&color=ffffff&size=64";
     }
 
     public function getInitialsAttribute()
     {
-        return collect(explode(' ', $this->name))
+        return strtoupper(collect(explode(' ', $this->name))
             ->map(fn($word) => substr($word, 0, 1))
             ->take(2)
-            ->join('')
-            ->toUpper();
+            ->join(''));
     }
 
     public function getRoleLabelAttribute()

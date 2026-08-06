@@ -27,4 +27,35 @@ class NotificationController extends Controller
 
         return redirect()->route('notifications.index');
     }
+
+    public function latest()
+    {
+        $userId = auth()->id();
+        $notifications = Notification::where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $unreadCount = Notification::where('user_id', $userId)
+            ->where('is_read', false)
+            ->count();
+
+        $notifications->each(function($notif) {
+            $notif->time_ago = $notif->created_at->diffForHumans();
+        });
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
+    }
+
+    public function ajaxMarkAllRead()
+    {
+        Notification::where('user_id', auth()->id())
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json(['success' => true]);
+    }
 }

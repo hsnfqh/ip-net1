@@ -11,8 +11,22 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = Project::with(['creator', 'tasks'])->get();
-        return view('projects.index', compact('projects'));
+        $user = auth()->user();
+        $isLead = $user->hasRole('Lead Engineer');
+
+        if ($isLead) {
+            $projects = Project::with(['creator', 'tasks'])->get();
+        } else {
+            // Engineer hanya bisa lihat project yang dia punya task di dalamnya
+            $projectIds = \App\Models\Task::where('engineer_id', $user->id)
+                ->pluck('project_id')
+                ->unique();
+            $projects = Project::with(['creator', 'tasks'])
+                ->whereIn('id', $projectIds)
+                ->get();
+        }
+
+        return view('projects.index', compact('projects', 'isLead'));
     }
 
     public function store(ProjectRequest $request)

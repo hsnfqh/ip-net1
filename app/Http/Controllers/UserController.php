@@ -11,20 +11,30 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    private function formatUserResponse(User $user): array
+    {
+        return [
+            'id'                        => $user->id,
+            'name'                      => $user->name,
+            'email'                     => $user->email,
+            'phone'                     => $user->phone,
+            'position'                  => $user->position,
+            'status'                    => $user->status,
+            'role_name'                 => $user->getRoleNames()->first() ?? 'Tidak Ada Role',
+            'roles'                     => $user->getRoleNames()->toArray(),
+            'certification'             => $user->certification,
+            'certification_file'        => $user->certification_file,
+            'certification_status'      => $user->certification_status ?? 'pending',
+            'certification_uploaded_at' => $user->certification_uploaded_at ? $user->certification_uploaded_at->format('d M Y H:i') : null,
+            'has_certification'         => !empty($user->certification_file),
+        ];
+    }
+
     public function index()
     {
         // Load users dengan roles menggunakan Spatie
         $users = User::with('roles')->get()->map(function($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'position' => $user->position,
-                'status' => $user->status,
-                'role_name' => $user->getRoleNames()->first() ?? 'Tidak Ada Role', // <-- PASTIKAN INI
-                'roles' => $user->getRoleNames()->toArray(),
-            ];
+            return $this->formatUserResponse($user);
         });
         
         $roles = Role::all();
@@ -37,20 +47,18 @@ class UserController extends Controller
         $data = $request->validated();
         $data['password'] = Hash::make($data['password']);
         
+        if ($request->hasFile('certification_file')) {
+            $path = $request->file('certification_file')->store('certifications', 'public');
+            $data['certification_file'] = $path;
+            $data['certification_status'] = 'pending';
+            $data['certification_uploaded_at'] = now();
+        }
+
         $user = User::create($data);
         $user->assignRole($data['role']);
         
-        // Return JSON untuk AJAX
-        if ($request->ajax()) {
-            return response()->json([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'position' => $user->position,
-                'status' => $user->status,
-                'role_name' => $user->getRoleNames()->first(),
-            ]);
+        if ($request->wantsJson() || $request->isJson() || $request->ajax()) {
+            return response()->json($this->formatUserResponse($user));
         }
 
         return redirect()->route('users.index')
@@ -66,20 +74,25 @@ class UserController extends Controller
         } else {
             unset($data['password']);
         }
+
+        if ($request->hasFile('certification_file')) {
+            // Remove old certification file if exists
+            if ($user->certification_file && Storage::disk('public')->exists($user->certification_file)) {
+                Storage::disk('public')->delete($user->certification_file);
+            }
+            $path = $request->file('certification_file')->store('certifications', 'public');
+            $data['certification_file'] = $path;
+            $data['certification_status'] = 'pending';
+            $data['certification_uploaded_at'] = now();
+        }
         
         $user->update($data);
-        $user->syncRoles([$data['role']]);
+        if (isset($data['role'])) {
+            $user->syncRoles([$data['role']]);
+        }
         
-        if ($request->ajax()) {
-            return response()->json([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'position' => $user->position,
-                'status' => $user->status,
-                'role_name' => $user->getRoleNames()->first(),
-            ]);
+        if ($request->wantsJson() || $request->isJson() || $request->ajax()) {
+            return response()->json($this->formatUserResponse($user));
         }
 
         return redirect()->route('users.index')
@@ -89,7 +102,7 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
-            if (request()->ajax()) {
+            if (request()->wantsJson() || request()->isJson() || request()->ajax()) {
                 return response()->json(['error' => 'Anda tidak dapat menghapus akun sendiri!'], 403);
             }
             return redirect()->route('users.index')
@@ -98,7 +111,7 @@ class UserController extends Controller
         
         $user->delete();
 
-        if (request()->ajax()) {
+        if (request()->wantsJson() || request()->isJson() || request()->ajax()) {
             return response()->json(['success' => true]);
         }
 
@@ -117,14 +130,22 @@ class UserController extends Controller
         $user->status = $user->status === 'Active' ? 'Inactive' : 'Active';
         $user->save();
 
-        return response()->json([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'position' => $user->position,
-            'status' => $user->status,
-            'role_name' => $user->getRoleNames()->first(),
-        ]);
+        return response()->json($this->formatUserResponse($user));
+    }
+
+    public function approveCertification(User $user)
+    {
+        $user->certification_status = 'approved';
+        $user->save();
+
+        return response()->json($this->formatUserResponse($user));
+    }
+
+    public function rejectCertification(User $user)
+    {
+        $user->certification_status = 'rejected';
+        $user->save();
+
+        return response()->json($this->formatUserResponse($user));
     }
 }

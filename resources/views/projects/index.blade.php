@@ -62,13 +62,13 @@
                                     <td class="py-3 px-4 font-medium text-[#17151C]" x-text="project.name"></td>
                                     <td class="py-3 px-4 text-[#3D3A44]" x-text="project.client"></td>
                                     <td class="py-3 px-4 text-[#3D3A44]" x-text="project.location"></td>
-                                    <td class="py-3 px-4 text-[#3D3A44] font-mono text-[12.5px]" x-text="project.deadline"></td>
+                                    <td class="py-3 px-4 text-[#3D3A44] font-mono text-[12.5px]" x-text="formatDeadline(project.deadline)"></td>
                                     <td class="py-3 px-4">
                                         <div class="w-24">
                                             <div style="width: 100%; background: #EFEDEB; border-radius: 20px; height: 6px; overflow: hidden;">
-                                                <div style="width: 0%; height: 100%; border-radius: 20px; background: linear-gradient(90deg, #AF1424, #D62E3C); transition: width .25s ease;" :style="'width: ' + project.progress + '%'"></div>
+                                                <div style="height: 100%; border-radius: 20px; background: linear-gradient(90deg, #AF1424, #D62E3C); transition: width .25s ease;" :style="{ width: getProjectProgress(project) + '%' }"></div>
                                             </div>
-                                            <span class="text-[10.5px] text-[#948F99]" x-text="project.progress + '%'"></span>
+                                            <span class="text-[10.5px] text-[#948F99]" x-text="getProjectProgress(project) + '%'"></span>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4">
@@ -260,8 +260,8 @@
                         <p class="text-[#3D3A44] leading-relaxed break-words" x-text="detailProject?.description"></p>
                         <div class="break-words"><span class="font-semibold">Client:</span> <span x-text="detailProject?.client"></span></div>
                         <div class="break-words"><span class="font-semibold">Lokasi:</span> <span x-text="detailProject?.location"></span></div>
-                        <div class="break-words"><span class="font-semibold">Mulai:</span> <span x-text="detailProject?.start_date"></span> <span class="font-semibold">Deadline:</span> <span x-text="detailProject?.deadline"></span></div>
-                        <div><span class="font-semibold">Progress:</span> <span x-text="detailProject?.progress + '%'"></span></div>
+                        <div class="break-words"><span class="font-semibold">Mulai:</span> <span x-text="formatDeadline(detailProject?.start_date)"></span> <span class="font-semibold">Deadline:</span> <span x-text="formatDeadline(detailProject?.deadline)"></span></div>
+                        <div><span class="font-semibold">Progress:</span> <span x-text="detailProject ? getProjectProgress(detailProject) + '%' : ''"></span></div>
                     </div>
                 </div>
             </div>
@@ -417,6 +417,24 @@
                             <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.dot}; flex-shrink: 0;"></span>
                             ${status}
                         </span>`;
+            },
+
+            formatDeadline(dateStr) {
+                if (!dateStr) return '-';
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return String(d.getUTCDate()).padStart(2,'0') + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+            },
+
+            getProjectProgress(project) {
+                // Kalau status Completed, otomatis 100%
+                if (project.status === 'Completed') return 100;
+                // Kalau Planning dan belum ada tasks, 0%
+                if (!project.tasks || project.tasks.length === 0) return 0;
+                // Hitung rata-rata progress dari semua tasks
+                const total = project.tasks.reduce((sum, t) => sum + (parseInt(t.progress) || 0), 0);
+                return Math.round(total / project.tasks.length);
             },
 
             showToast(message) {

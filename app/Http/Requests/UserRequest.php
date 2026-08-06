@@ -22,8 +22,17 @@ class UserRequest extends FormRequest
      */
     public function rules(): array
     {
+        $userId = $this->route('user') ? $this->route('user')->id : null;
+
         return [
-            //
+            'name'               => 'required|string|max:255',
+            'email'              => 'required|email|unique:users,email,' . $userId,
+            'phone'              => 'nullable|string|max:20',
+            'position'           => 'nullable|string|max:100',
+            'role'               => 'required|string',
+            'status'             => 'required|in:Active,Inactive',
+            'password'           => $userId ? 'nullable|string|min:6' : 'required|string|min:6',
+            'certification_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
 }

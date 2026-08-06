@@ -12,39 +12,59 @@ class NotificationSeeder extends Seeder
     {
         $users = User::all();
 
+        Notification::query()->delete();
+
         if ($users->isEmpty()) {
             $this->command->warn('Tidak ada user ditemukan, seeder notifikasi dilewati.');
             return;
         }
 
-        $samples = [
-            [
-                'title' => 'Task Baru Ditugaskan',
-                'message' => 'Anda mendapatkan task baru dari Lead Engineer.',
-                'url' => route('tasks.index'),
-                'is_read' => false,
-            ],
-            [
-                'title' => 'Deadline Mendekat',
-                'message' => 'Salah satu task Anda akan jatuh tempo dalam 2 hari.',
-                'url' => route('tasks.index'),
-                'is_read' => false,
-            ],
-            [
-                'title' => 'Status Task Diperbarui',
-                'message' => 'Task "Instalasi Jaringan Lantai 2" berhasil diubah menjadi In Progress.',
-                'url' => route('tasks.index'),
-                'is_read' => true,
-            ],
-            [
-                'title' => 'Jadwal Baru Ditambahkan',
-                'message' => 'Ada jadwal kerja baru untuk minggu ini.',
-                'url' => route('schedules.index'),
-                'is_read' => true,
-            ],
-        ];
 
         foreach ($users as $user) {
+            if ($user->hasRole('Lead Engineer')) {
+                $samples = [
+                    [
+                        'title' => 'Pekerjaan Selesai',
+                        'message' => 'Dimas Prakoso telah menyelesaikan tugas: "Instalasi Fiber Optik Lantai 2".',
+                        'url' => route('tasks.index'),
+                        'is_read' => false,
+                    ],
+                    [
+                        'title' => 'Sertifikasi Diupload',
+                        'message' => 'Fajar Nugroho mengupload dokumen sertifikasi baru untuk diverifikasi.',
+                        'url' => route('users.index'), // halaman verifikasi
+                        'is_read' => false,
+                    ],
+                    [
+                        'title' => 'Task Butuh Review',
+                        'message' => 'Sinta Wulandari mengubah status tugas "Konfigurasi Switch" menjadi Waiting Review.',
+                        'url' => route('tasks.index'),
+                        'is_read' => true,
+                    ],
+                ];
+            } else {
+                $samples = [
+                    [
+                        'title' => 'Tugas Baru Ditugaskan',
+                        'message' => 'Anda mendapatkan tugas baru dari Lead Engineer Rangga Saputra.',
+                        'url' => route('tasks.index'),
+                        'is_read' => false,
+                    ],
+                    [
+                        'title' => 'Sertifikasi Disetujui',
+                        'message' => 'Selamat, sertifikasi keahlian Anda telah disetujui oleh Lead Engineer.',
+                        'url' => route('profile.show'),
+                        'is_read' => false,
+                    ],
+                    [
+                        'title' => 'Jadwal Baru Ditambahkan',
+                        'message' => 'Ada jadwal kerja baru untuk Anda minggu ini.',
+                        'url' => route('schedules.index'),
+                        'is_read' => true,
+                    ],
+                ];
+            }
+
             foreach ($samples as $sample) {
                 Notification::create([
                     'user_id' => $user->id,

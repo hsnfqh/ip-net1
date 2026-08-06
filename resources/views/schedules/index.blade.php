@@ -26,6 +26,7 @@
                 </div>
 
                 <div class="jkw-actions">
+                    @if(auth()->user()->hasRole('Lead Engineer'))
                     <div class="jkw-select-wrap">
                         <svg class="jkw-select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"/>
@@ -37,33 +38,19 @@
                             </template>
                         </select>
                     </div>
-
-                    <button type="button" class="jkw-btn jkw-btn--ghost" :class="{ 'is-on': showAvailability }" @click="showAvailability = !showAvailability">
-                        <svg class="jkw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"/>
-                        </svg>
-                        <span>Ketersediaan Engineer</span>
-                    </button>
-
-                    @if(auth()->user()->hasRole('Lead Engineer'))
-                    <button type="button" class="jkw-btn jkw-btn--primary" @click="openModal()">
-                        <svg class="jkw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <span>Buat Jadwal</span>
-                    </button>
                     @endif
                 </div>
             </div>
 
-            {{-- PANEL KETERSEDIAAN --}}
-            <div class="jkw-card jkw-avail" x-show="showAvailability" x-cloak
+            {{-- PANEL KETERSEDIAAN ENGINEER — Hanya Lead Engineer --}}
+            @if(auth()->user()->hasRole('Lead Engineer'))
+            <div class="jkw-card jkw-avail"
                  x-transition:enter="jkw-fade-enter" x-transition:enter-start="jkw-fade-start" x-transition:enter-end="jkw-fade-end">
                 <div class="jkw-avail-head">
                     <span class="jkw-eyebrow">Ketersediaan Engineer — <span x-text="periodLabel"></span></span>
                     <label class="jkw-check">
                         <input type="checkbox" x-model="showOnlyAvailable">
-                        <span>Tampilkan hanya yang tersedia</span>
+                        <span>Hanya yang tersedia</span>
                     </label>
                 </div>
                 <div class="jkw-avail-body">
@@ -78,10 +65,11 @@
                         </button>
                     </template>
                     <div class="jkw-empty-inline" x-show="filteredEngineerAvailability.length === 0">
-                        Tidak ada engineer yang tersedia pada periode ini.
+                        Tidak ada engineer pada periode ini.
                     </div>
                 </div>
             </div>
+            @endif
 
             {{-- DAY VIEW --}}
             <div x-show="viewMode === 'day'" x-transition:enter="jkw-fade-enter" x-transition:enter-start="jkw-fade-start" x-transition:enter-end="jkw-fade-end">
@@ -464,9 +452,9 @@
 .jkw-fade-end { opacity:1 !important; }
 
 /* ---------- header ---------- */
-.jkw-header { display:flex !important; flex-wrap:wrap !important; align-items:center !important; justify-content:space-between !important; gap:12px !important; margin-bottom:16px !important; }
+.jkw-header { display:flex !important; flex-wrap:nowrap !important; align-items:center !important; justify-content:space-between !important; gap:12px !important; margin-bottom:16px !important; }
 
-.jkw-tabs { display:flex !important; gap:4px !important; background:#F1F0EE !important; padding:4px !important; border-radius:10px !important; width:100% !important; max-width:420px !important; }
+.jkw-tabs { display:flex !important; gap:4px !important; background:#F1F0EE !important; padding:4px !important; border-radius:10px !important; flex-shrink:0 !important; }
 .jkw-tab {
     all: unset !important;
     flex:1 1 0 !important;
@@ -477,7 +465,7 @@
 .jkw-tab.is-active { background:var(--jkw-surface) !important; color:var(--jkw-ink) !important; box-shadow:0 1px 3px rgba(14,13,18,.1) !important; }
 .jkw-tab:hover:not(.is-active) { color:var(--jkw-ink-2) !important; }
 
-.jkw-actions { display:flex !important; align-items:center !important; gap:10px !important; flex-wrap:wrap !important; width:100% !important; justify-content:flex-end !important; }
+.jkw-actions { display:flex !important; align-items:center !important; gap:10px !important; flex-shrink:0 !important; justify-content:flex-end !important; }
 
 .jkw-select-wrap { position:relative !important; display:inline-flex !important; align-items:center !important; flex:1 1 180px !important; max-width:220px !important; }
 .jkw-select-icon { width:14px !important; height:14px !important; position:absolute !important; left:11px !important; color:var(--jkw-muted) !important; pointer-events:none !important; }
@@ -692,7 +680,7 @@
                 schedules: @json($schedules),
                 projects: @json($projects),
                 engineers: @json($engineers),
-                viewMode: 'week',
+                viewMode: 'day',
                 currentDate: new Date(),
                 showAvailability: false,
                 showOnlyAvailable: false,

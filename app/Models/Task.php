@@ -20,6 +20,7 @@ class Task extends Model
         'deadline',
         'progress',
         'attachments',
+        'doc_file',
         'description',
         'created_by',
     ];
