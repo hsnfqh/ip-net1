@@ -45,6 +45,26 @@
     </div>
     
     <script>
+        // Register Service Worker for Desktop Push Notifications
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    window.swRegistration = reg;
+                }).catch((err) => {
+                    console.warn('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        // Auto prompt notification permission on user interaction
+        if ('Notification' in window && Notification.permission === 'default') {
+            const promptPermission = () => {
+                Notification.requestPermission();
+                window.removeEventListener('click', promptPermission);
+            };
+            window.addEventListener('click', promptPermission, { once: true });
+        }
+
         document.addEventListener('alpine:init', () => {
             Alpine.data('app', () => ({
                 sidebarCollapsed: false,

@@ -250,13 +250,13 @@
             <!-- ============================================================ -->
             <div x-show="viewCertModal" 
                  x-cloak
-                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; overflow-y:auto; backdrop-filter:blur(2px);"
+                 style="position:fixed; inset:0; background:rgba(14,13,18,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px);"
                  @click.self="viewCertModal = false">
                 
-                <div style="background:white; border-radius:16px; width:640px; max-width:calc(100% - 40px); max-height:calc(100vh - 80px); overflow-y:auto; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12); margin:40px auto;">
+                <div style="background:white; border-radius:16px; width:640px; max-width:100%; max-height:90vh; display:flex; flex-direction:column; animation:fadeInUp 0.18s ease; box-shadow:0 16px 40px rgba(14,13,18,0.12); margin:auto; position:relative; overflow:hidden;">
                     
                     <!-- Modal Header -->
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; position:sticky; top:0; background:white; border-bottom:1px solid #E7E5E3; z-index:1; border-radius:16px 16px 0 0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; background:white; border-bottom:1px solid #E7E5E3; flex-shrink:0;">
                         <h3 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; color:#17151C;">
                             Sertifikasi <span x-text="viewingUser.name" style="color:#C81E2C;"></span>
                         </h3>
@@ -268,59 +268,80 @@
                     </div>
                     
                     <!-- Modal Body -->
-                    <div style="padding:22px;">
-                        <div style="margin-bottom:16px;">
-                            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">Status Sertifikasi</p>
-                            <div x-html="getCertificationStatusBadge(viewingUser.certification_status)"></div>
-                        </div>
+                    <div style="padding:22px; overflow-y:auto; flex:1;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                            <div>
+                                <p style="margin:0 0 4px; font-size:11.5px; font-weight:700; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Status Sertifikasi</p>
+                                <div x-html="getCertificationStatusBadge(viewingUser.certification_status)"></div>
+                            </div>
 
-                        <div style="margin-bottom:16px;">
-                            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">Tanggal Upload</p>
-                            <p style="margin:0; color:#3D3A44;" x-text="viewingUser.certification_uploaded_at || '-'"></p>
-                        </div>
-
-                        <div style="margin-bottom:20px;">
-                            <p style="margin:0 0 8px; font-size:12px; font-weight:700; color:#75727C; text-transform:uppercase;">File Preview</p>
-                            <div style="border:1px solid #E7E5E3; border-radius:8px; padding:16px; background:#F9F9F7; text-align:center;">
-                                <iframe x-show="viewingUser.certification_file && viewingUser.certification_file.endsWith('.pdf')"
-                                        :src="'/storage/' + viewingUser.certification_file"
-                                        style="width:100%; height:400px; border:none; border-radius:8px;"></iframe>
-                                <img x-show="viewingUser.certification_file && !viewingUser.certification_file.endsWith('.pdf')"
-                                     :src="'/storage/' + viewingUser.certification_file"
-                                     style="max-width:100%; max-height:400px; border-radius:8px;">
+                            <div>
+                                <p style="margin:0 0 4px; font-size:11.5px; font-weight:700; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">Tanggal Upload</p>
+                                <p style="margin:0; color:#17151C; font-size:13.5px; font-weight:500;" x-text="viewingUser.certification_uploaded_at || '-'"></p>
                             </div>
                         </div>
 
-                        <!-- APPROVAL BUTTONS (HANYA UNTUK LEAD) -->
-                        <div x-show="viewingUser.certification_status === 'pending'" style="display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
-                            <button @click="approveCertification(viewingUser)" 
-                                    style="flex:1; justify-content:center; background:#1B7A46; color:white; padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
-                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Setujui
-                            </button>
-                            <button @click="rejectCertification(viewingUser)" 
-                                    style="flex:1; justify-content:center; background:#C81E2C; color:white; padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:7px;">
-                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Tolak
-                            </button>
+                        <div style="margin-bottom:16px;">
+                            <p style="margin:0 0 8px; font-size:11.5px; font-weight:700; color:#75727C; text-transform:uppercase; letter-spacing:0.3px;">File Preview</p>
+                            <div style="border:1px solid #E7E5E3; border-radius:12px; padding:16px; background:#F8F7F6; text-align:center; min-height:200px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                                <template x-if="viewingUser.certification_file && viewingUser.certification_file.toLowerCase().endsWith('.pdf')">
+                                    <iframe :src="'/storage/' + viewingUser.certification_file"
+                                            style="width:100%; height:380px; border:none; border-radius:8px; background:white;"></iframe>
+                                </template>
+                                <template x-if="viewingUser.certification_file && !viewingUser.certification_file.toLowerCase().endsWith('.pdf')">
+                                    <img :src="'/storage/' + viewingUser.certification_file"
+                                         alt="Pratinjau Sertifikasi"
+                                         style="max-width:100%; max-height:360px; object-fit:contain; border-radius:8px; box-shadow:0 4px 16px rgba(14,13,18,0.08); display:block; margin:0 auto;">
+                                </template>
+                                <template x-if="!viewingUser.certification_file">
+                                    <p style="color:#948F99; font-size:13px; margin:0;">Tidak ada file sertifikasi yang dapat ditampilkan.</p>
+                                </template>
+                            </div>
                         </div>
 
-                        <div style="display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
-                            <a :href="'/storage/' + viewingUser.certification_file"
-                               download
-                               style="flex:1; text-align:center; background:#C81E2C; color:white; padding:10px 17px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:center; gap:7px;">
-                                <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                </svg>
-                                Download
-                            </a>
-                            <button @click="viewCertModal = false" style="flex:1; background:white; color:#3D3A44; border:1px solid #E7E5E3; padding:10px 17px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer;">
-                                Tutup
-                            </button>
+                        <!-- Modal Footer Actions -->
+                        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #EFEDEB;">
+                            <template x-if="viewingUser.certification_status === 'pending'">
+                                <div style="display:flex; gap:10px; flex:1; min-width:240px;">
+                                    <button @click="approveCertification(viewingUser)" 
+                                            style="flex:1; justify-content:center; background:#1B7A46; color:white; padding:10px 16px; border-radius:8px; border:none; font-weight:600; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background 0.15s ease;"
+                                            onmouseover="this.style.background='#145E36'"
+                                            onmouseout="this.style.background='#1B7A46'">
+                                        <svg style="width:15px; height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Setujui
+                                    </button>
+                                    <button @click="rejectCertification(viewingUser)" 
+                                            style="flex:1; justify-content:center; background:#C81E2C; color:white; padding:10px 16px; border-radius:8px; border:none; font-weight:600; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background 0.15s ease;"
+                                            onmouseover="this.style.background='#A31622'"
+                                            onmouseout="this.style.background='#C81E2C'">
+                                        <svg style="width:15px; height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Tolak
+                                    </button>
+                                </div>
+                            </template>
+                            
+                            <div style="display:flex; gap:10px; flex:1; min-width:240px;">
+                                <a :href="'/storage/' + viewingUser.certification_file"
+                                   download
+                                   style="flex:1; text-align:center; background:#17151C; color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:6px; transition:background 0.15s ease;"
+                                   onmouseover="this.style.background='#2D2A35'"
+                                   onmouseout="this.style.background='#17151C'">
+                                    <svg style="width:15px; height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Download
+                                </a>
+                                <button @click="viewCertModal = false" 
+                                        style="flex:1; background:white; color:#3D3A44; border:1px solid #E7E5E3; padding:10px 16px; border-radius:8px; font-weight:600; font-size:13.5px; cursor:pointer; transition:background 0.15s ease;"
+                                        onmouseover="this.style.background='#F8F7F6'"
+                                        onmouseout="this.style.background='white'">
+                                    Tutup
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -87,6 +87,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
         Route::get('/latest', [NotificationController::class, 'latest'])->name('notifications.latest');
         Route::post('/read-all', [NotificationController::class, 'ajaxMarkAllRead'])->name('notifications.read-all');
+        Route::delete('/destroy-all', [NotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
+        Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     });
 
     // Profile

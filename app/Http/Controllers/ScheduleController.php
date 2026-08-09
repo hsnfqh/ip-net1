@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use App\Http\Requests\ScheduleRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -51,8 +52,50 @@ class ScheduleController extends Controller
             
         $projects = Project::all();
         $engineers = User::engineers()->get();
+
+        // Tasks dengan deadline untuk ditampilkan di kalender
+        $tasks = Task::with(['project', 'engineer'])
+            ->when(!$user->hasRole('Lead Engineer'), function($query) use ($user) {
+                return $query->where('engineer_id', $user->id);
+            })
+            ->whereNotNull('deadline')
+            ->whereNot('status', 'Completed')
+            ->get()
+            ->map(function($task) {
+                return [
+                    'id'          => $task->id,
+                    'title'       => $task->title,
+                    'deadline'    => $task->deadline ? $task->deadline->format('Y-m-d') : null,
+                    'priority'    => $task->priority,
+                    'status'      => $task->status,
+                    'engineer_id' => $task->engineer_id,
+                    'project_id'  => $task->project_id,
+                    'project'     => $task->project ? ['id' => $task->project->id, 'name' => $task->project->name] : null,
+                    'engineer'    => $task->engineer ? ['id' => $task->engineer->id, 'name' => $task->engineer->name] : null,
+                ];
+            });
+
+        // Projects dengan deadline untuk ditampilkan di kalender
+        $calendarProjects = Project::with('creator')
+            ->when(!$user->hasRole('Lead Engineer'), function($query) use ($user) {
+                // Engineer hanya lihat project yang ada task miliknya
+                $projectIds = Task::where('engineer_id', $user->id)->pluck('project_id')->unique();
+                return $query->whereIn('id', $projectIds);
+            })
+            ->whereNotNull('deadline')
+            ->whereNot('status', 'Completed')
+            ->get()
+            ->map(function($project) {
+                return [
+                    'id'       => $project->id,
+                    'name'     => $project->name,
+                    'deadline' => $project->deadline ? $project->deadline->format('Y-m-d') : null,
+                    'status'   => $project->status,
+                    'client'   => $project->client,
+                ];
+            });
         
-        return view('schedules.index', compact('schedules', 'projects', 'engineers'));
+        return view('schedules.index', compact('schedules', 'projects', 'engineers', 'tasks', 'calendarProjects'));
     }
 
     /**

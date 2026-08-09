@@ -85,7 +85,7 @@
                 
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
                     <label class="flex items-center gap-2 text-[12.5px] sm:text-[13px] text-[#3D3A44] cursor-pointer">
-                        <input type="checkbox" name="remember" class="w-4 h-4 rounded border-[#E7E5E3] text-[#C81E2C] focus:ring-[#C81E2C]">
+                        <input type="checkbox" name="remember" class="w-4 h-4 rounded border-[#E7E5E3] text-[#C81E2C] focus:ring-[#C81E2C]" checked>
                         Ingat saya
                     </label>
                     <a href="#" class="text-[12.5px] sm:text-[13px] text-[#C81E2C] hover:underline">Lupa password?</a>

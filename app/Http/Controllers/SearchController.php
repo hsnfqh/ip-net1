@@ -12,7 +12,7 @@ class SearchController extends Controller
     {
         $q = trim($request->query('q', ''));
         $user = auth()->user();
-        $isLead = $user->role === 'Lead Engineer';
+        $isLead = $user->hasRole('Lead Engineer');
 
         $projects = collect();
         $tasks = collect();

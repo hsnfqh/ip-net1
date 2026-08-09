@@ -71,6 +71,27 @@
             </div>
             @endif
 
+            {{-- LEGEND -- hanya tampil di view selain rekap --}}
+            <template x-if="viewMode !== 'table'">
+                <div style="display:flex; align-items:center; gap:14px; flex-wrap:nowrap; margin-bottom:12px; padding:8px 16px; background:var(--jkw-surface); border:1px solid var(--jkw-line); border-radius:10px; overflow-x:auto;">
+                    <span style="font-size:11px; font-weight:700; color:var(--jkw-muted); text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; flex-shrink:0;">Keterangan:</span>
+                    <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        <span style="width:10px; height:10px; border-radius:2px; background:#2563EB; flex-shrink:0; display:inline-block;"></span>
+                        <span style="font-size:12px; color:var(--jkw-ink-2); white-space:nowrap;">Jadwal Kerja</span>
+                    </span>
+                    <span style="color:var(--jkw-line); flex-shrink:0;">|</span>
+                    <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        <span style="width:10px; height:10px; border-radius:2px; background:#C81E2C; flex-shrink:0; display:inline-block;"></span>
+                        <span style="font-size:12px; color:var(--jkw-ink-2); white-space:nowrap;">Deadline Task</span>
+                    </span>
+                    <span style="color:var(--jkw-line); flex-shrink:0;">|</span>
+                    <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        <span style="width:10px; height:10px; border-radius:2px; background:#991B1B; flex-shrink:0; display:inline-block;"></span>
+                        <span style="font-size:12px; color:var(--jkw-ink-2); white-space:nowrap;">Deadline Project</span>
+                    </span>
+                </div>
+            </template>
+
             {{-- DAY VIEW --}}
             <div x-show="viewMode === 'day'" x-transition:enter="jkw-fade-enter" x-transition:enter-start="jkw-fade-start" x-transition:enter-end="jkw-fade-end">
                 <div class="jkw-card">
@@ -88,18 +109,22 @@
                     </div>
 
                     <div class="jkw-day-list">
-                        <template x-for="schedule in daySchedules" :key="schedule.id">
-                            <div class="jkw-day-item">
-                                <div class="jkw-time" x-text="schedule.start_time.substring(0,5) + ' – ' + schedule.end_time.substring(0,5)"></div>
+                        <template x-for="schedule in daySchedules" :key="schedule._uid">
+                            <div class="jkw-day-item" :style="'border-left: 4px solid ' + schedule._color + '; padding-left: 14px;'">
+                                <div class="jkw-time" x-text="schedule._type === 'schedule' ? (schedule.start_time + ' – ' + schedule.end_time) : schedule._timeLabel"></div>
                                 <div class="jkw-day-main">
-                                    <div class="jkw-day-title" x-text="schedule.title"></div>
+                                    <div class="jkw-day-title" x-text="schedule._displayTitle"></div>
                                     <div class="jkw-day-meta">
                                         <span class="jkw-avatar jkw-avatar--sm" :style="'background:' + colorFromName(schedule.engineer?.name || '-')" x-text="initials(schedule.engineer?.name || '-')"></span>
                                         <span x-text="schedule.engineer?.name || '-'"></span>
                                         <span class="jkw-sep">·</span>
                                         <span x-text="schedule.project?.name || '-'"></span>
-                                        <span class="jkw-sep">·</span>
-                                        <span x-text="schedule.location || '-'"></span>
+                                        <template x-if="schedule._type === 'schedule' && schedule.location">
+                                            <span>
+                                                <span class="jkw-sep">·</span>
+                                                <span x-text="schedule.location"></span>
+                                            </span>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -108,7 +133,7 @@
                             <div class="jkw-empty-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
-                            <p>Tidak ada jadwal pada hari ini.</p>
+                            <p>Tidak ada jadwal atau deadline pada hari ini.</p>
                         </div>
                     </div>
                 </div>
@@ -139,14 +164,14 @@
                                         <span class="jkw-mono" x-text="day.date"></span>
                                     </div>
                                     <div class="jkw-week-col-body">
-                                        <template x-for="schedule in getSchedulesForDay(day.fullDate)" :key="schedule.id">
-                                            <div class="jkw-mini-card">
-                                                <div class="jkw-mini-time" x-text="schedule.start_time"></div>
-                                                <div class="jkw-mini-title" x-text="schedule.title"></div>
-                                                <div class="jkw-mini-eng" x-text="schedule.engineer?.name"></div>
+                                        <template x-for="event in getAllEventsForDay(day.fullDate)" :key="event._uid">
+                                            <div class="jkw-mini-card" :style="'border-left: 3px solid ' + event._color + ';'">
+                                                <div class="jkw-mini-time" x-text="event._timeLabel" style="font-size:10px; opacity:0.7;"></div>
+                                                <div class="jkw-mini-title" x-text="event._displayTitle"></div>
+                                                <div class="jkw-mini-eng" x-text="event._subLabel"></div>
                                             </div>
                                         </template>
-                                        <div class="jkw-mini-empty" x-show="getSchedulesForDay(day.fullDate).length === 0">—</div>
+                                        <div class="jkw-mini-empty" x-show="getAllEventsForDay(day.fullDate).length === 0">—</div>
                                     </div>
                                 </div>
                             </template>
@@ -184,10 +209,10 @@
                                     <div class="jkw-month-cell" :class="{ 'is-out': !day.inMonth, 'is-today': day.fullDate === todayStr }">
                                         <div class="jkw-month-daynum" x-text="day.dayNum"></div>
                                         <div class="jkw-month-events">
-                                            <template x-for="schedule in getSchedulesForDay(day.fullDate).slice(0, 2)" :key="schedule.id">
-                                                <div class="jkw-month-event" x-text="schedule.title"></div>
+                                            <template x-for="event in getAllEventsForDay(day.fullDate).slice(0, 3)" :key="event._uid">
+                                                <div class="jkw-month-event" :style="'background:' + event._color + '; color:#fff;'" x-text="event._displayTitle"></div>
                                             </template>
-                                            <div class="jkw-month-more" x-show="getSchedulesForDay(day.fullDate).length > 2" x-text="'+' + (getSchedulesForDay(day.fullDate).length - 2) + ' lagi'"></div>
+                                            <div class="jkw-month-more" x-show="getAllEventsForDay(day.fullDate).length > 3" x-text="'+' + (getAllEventsForDay(day.fullDate).length - 3) + ' lagi'"></div>
                                         </div>
                                     </div>
                                 </template>
@@ -555,8 +580,8 @@
 .jkw-week-col.is-today { background:var(--jkw-bg-soft) !important; }
 .jkw-week-col-head { font-size:11px !important; color:var(--jkw-muted) !important; font-weight:700 !important; margin-bottom:10px !important; display:flex !important; align-items:center !important; gap:5px !important; }
 .jkw-week-col-body { display:flex !important; flex-direction:column !important; gap:6px !important; }
-.jkw-mini-card { background:var(--jkw-primary-soft) !important; border-left:3px solid var(--jkw-primary) !important; border-radius:6px !important; padding:6px 9px !important; }
-.jkw-mini-time { font-family:'IBM Plex Mono', monospace !important; font-size:10px !important; font-weight:700 !important; color:var(--jkw-primary-dark) !important; }
+.jkw-mini-card { background:rgba(37,99,235,0.07) !important; border-radius:6px !important; padding:6px 9px !important; }
+.jkw-mini-time { font-family:'IBM Plex Mono', monospace !important; font-size:10px !important; font-weight:700 !important; color:var(--jkw-ink-2) !important; }
 .jkw-mini-title { font-size:11.5px !important; color:var(--jkw-ink) !important; font-weight:600 !important; line-height:1.3 !important; margin-top:1px !important; word-break:break-word !important; }
 .jkw-mini-eng { font-size:9.5px !important; color:var(--jkw-muted) !important; margin-top:1px !important; }
 .jkw-mini-empty { font-size:11px !important; color:#C7C4CD !important; padding:8px 0 !important; text-align:center !important; }
@@ -574,7 +599,7 @@
 .jkw-month-daynum { font-size:11.5px !important; font-weight:700 !important; color:var(--jkw-ink) !important; margin-bottom:5px !important; }
 .jkw-month-cell.is-out .jkw-month-daynum { color:#C7C4CD !important; }
 .jkw-month-events { display:flex !important; flex-direction:column !important; gap:2px !important; }
-.jkw-month-event { background:var(--jkw-primary-soft) !important; border-left:2px solid var(--jkw-primary) !important; border-radius:4px !important; padding:2px 6px !important; font-size:9.5px !important; color:var(--jkw-ink) !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
+.jkw-month-event { border-radius:4px !important; padding:2px 6px !important; font-size:9.5px !important; font-weight:600 !important; color:#fff !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
 .jkw-month-more { font-size:9.5px !important; color:var(--jkw-muted) !important; padding-left:6px !important; }
 
 /* ---------- table view ---------- */
@@ -678,6 +703,8 @@
         Alpine.data('schedulesManager', function() {
             return {
                 schedules: @json($schedules),
+                tasks: @json($tasks),
+                calendarProjects: @json($calendarProjects),
                 projects: @json($projects),
                 engineers: @json($engineers),
                 viewMode: 'day',
@@ -702,6 +729,11 @@
                 },
 
                 init: function() {},
+
+                // Warna event
+                // Jadwal biasa  = Biru
+                // Deadline Task = Merah
+                // Deadline Proj = Merah tua
 
                 formatDate: function(d) {
                     var y = d.getFullYear();
@@ -739,8 +771,8 @@
                     return this.currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                 },
                 get daySchedules() {
-                    return this.getSchedulesForDay(this.currentDateStr).sort(function(a, b) {
-                        return a.start_time.localeCompare(b.start_time);
+                    return this.getAllEventsForDay(this.currentDateStr).sort(function(a, b) {
+                        return (a._timeLabel || '').localeCompare(b._timeLabel || '');
                     });
                 },
                 changeDay: function(delta) {
@@ -869,6 +901,92 @@
                             engineer: s.engineer
                         };
                     });
+                },
+
+                getAllEventsForDay: function(date) {
+                    var self = this;
+                    var events = [];
+
+                    // --- Jadwal biasa (BIRU) ---
+                    var filtered = this.engineerFilter
+                        ? this.schedules.filter(function(s) { return String(s.engineer_id) === String(self.engineerFilter); })
+                        : this.schedules;
+                    filtered.forEach(function(s) {
+                        var d = (s.date || '').split('T')[0];
+                        if (d === date) {
+                            events.push({
+                                _uid: 'sch-' + s.id,
+                                _type: 'schedule',
+                                _color: '#2563EB',
+                                _displayTitle: s.title,
+                                _timeLabel: s.start_time ? s.start_time.substring(0, 5) : '',
+                                _subLabel: (s.engineer && s.engineer.name) ? s.engineer.name : (s.project && s.project.name ? s.project.name : ''),
+                                id: s.id,
+                                title: s.title,
+                                project_id: s.project_id,
+                                engineer_id: s.engineer_id,
+                                date: s.date,
+                                start_time: s.start_time ? s.start_time.substring(0, 5) : '',
+                                end_time: s.end_time ? s.end_time.substring(0, 5) : '',
+                                location: s.location,
+                                description: s.description,
+                                project: s.project,
+                                engineer: s.engineer
+                            });
+                        }
+                    });
+
+                    // --- Deadline Task (MERAH) ---
+                    var filteredTasks = this.engineerFilter
+                        ? this.tasks.filter(function(t) { return String(t.engineer_id) === String(self.engineerFilter); })
+                        : this.tasks;
+                    filteredTasks.forEach(function(t) {
+                        if (t.deadline === date) {
+                            events.push({
+                                _uid: 'task-' + t.id,
+                                _type: 'task',
+                                _color: '#C81E2C',
+                                _displayTitle: 'Deadline: ' + t.title,
+                                _timeLabel: 'Deadline',
+                                _subLabel: (t.engineer && t.engineer.name) ? t.engineer.name : (t.project && t.project.name ? t.project.name : ''),
+                                id: t.id,
+                                title: t.title,
+                                project: t.project,
+                                engineer: t.engineer,
+                                priority: t.priority,
+                                status: t.status,
+                                deadline: t.deadline,
+                                start_time: '',
+                                end_time: '',
+                                location: '',
+                                description: ''
+                            });
+                        }
+                    });
+
+                    // --- Deadline Project (MERAH TUA) ---
+                    this.calendarProjects.forEach(function(p) {
+                        if (p.deadline === date) {
+                            events.push({
+                                _uid: 'proj-' + p.id,
+                                _type: 'project',
+                                _color: '#991B1B',
+                                _displayTitle: 'Deadline: ' + p.name,
+                                _timeLabel: 'Deadline',
+                                _subLabel: p.client || '',
+                                id: p.id,
+                                title: p.name,
+                                project: { id: p.id, name: p.name },
+                                engineer: null,
+                                start_time: '',
+                                end_time: '',
+                                location: '',
+                                description: ''
+                            });
+                        }
+                    });
+
+                    return events;
                 },
 
                 get modalTitle() {

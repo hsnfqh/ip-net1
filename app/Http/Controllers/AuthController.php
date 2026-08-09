@@ -21,6 +21,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         $credentials = $request->validated();
+        $remember = $request->boolean('remember');
 
         $user = User::where('email', $credentials['email'])->first();
 
@@ -30,7 +31,7 @@ class AuthController extends Controller
             ])->onlyInput('email');
         }
 
-        if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password']])) {
+        if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password']], $remember)) {
             $request->session()->regenerate();
             
             $user->update(['last_login_at' => now()]);

@@ -18,7 +18,6 @@ class NotificationController extends Controller
         ]);
     }
 
-
     public function markAllRead()
     {
         Notification::where('user_id', auth()->id())
@@ -46,7 +45,7 @@ class NotificationController extends Controller
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => $unreadCount
+            'unread_count'  => $unreadCount
         ]);
     }
 
@@ -58,4 +57,36 @@ class NotificationController extends Controller
 
         return response()->json(['success' => true]);
     }
-}
+
+    /**
+     * Hapus satu notifikasi milik user yang sedang login.
+     */
+    public function destroy(Notification $notification)
+    {
+        abort_unless($notification->user_id === auth()->id(), 403);
+
+        $notification->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->route('notifications.index')
+            ->with('success', 'Notifikasi dihapus.');
+    }
+
+    /**
+     * Hapus semua notifikasi milik user yang sedang login.
+     */
+    public function destroyAll()
+    {
+        Notification::where('user_id', auth()->id())->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->route('notifications.index')
+            ->with('success', 'Semua notifikasi dihapus.');
+    }
+}
