@@ -1,5 +1,10 @@
 <?php
 
+// Enable error reporting to display exact error trace on screen
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 // Create temporary directories for Vercel Serverless environment
 $tmpStorage = [
     '/tmp/storage/framework/views',
