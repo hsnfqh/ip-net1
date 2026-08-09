@@ -42,6 +42,15 @@
         <div class="flex-1 bg-white p-7 sm:p-10 lg:p-[46px] flex flex-col justify-center lg:min-h-[500px]">
             <h2 class="font-display text-[19px] sm:text-[22px] font-semibold text-[#17151C] mb-1.5 tracking-[-0.2px]">Masuk ke Akun</h2>
             <p class="text-[12.5px] sm:text-[13px] text-[#75727C] mb-5 sm:mb-[22px]">Pilih peran untuk mengakses dashboard</p>
+
+            @if (session('status'))
+                <div style="background:#E4F3EA; border:1px solid #A3D9B5; border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; align-items:flex-start; gap:10px;">
+                    <svg style="width:18px; height:18px; color:#1B7A46; flex-shrink:0; margin-top:1px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p style="font-size:13px; color:#1B7A46; margin:0; line-height:1.5;">{{ session('status') }}</p>
+                </div>
+            @endif
             
             <form action="{{ route('login') }}" method="POST" x-data="loginForm()">
                 @csrf
@@ -88,7 +97,7 @@
                         <input type="checkbox" name="remember" class="w-4 h-4 rounded border-[#E7E5E3] text-[#C81E2C] focus:ring-[#C81E2C]" checked>
                         Ingat saya
                     </label>
-                    <a href="#" class="text-[12.5px] sm:text-[13px] text-[#C81E2C] hover:underline">Lupa password?</a>
+                    <a href="{{ route('password.request') }}" class="text-[12.5px] sm:text-[13px] text-[#C81E2C] hover:underline">Lupa password?</a>
                 </div>
                 
                 <button type="submit" 

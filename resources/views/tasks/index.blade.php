@@ -103,7 +103,7 @@
                                     </div>
 
                                     <div style="width:100%; background:#EFEDEB; border-radius:20px; height:5px; overflow:hidden;">
-                                        <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="'width: ' + (task.progress || 0) + '%'"></div>
+                                        <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="{ width: (task.progress || 0) + '%' }"></div>
                                     </div>
 
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; font-size:10.5px; color:#75727C;">
@@ -147,17 +147,33 @@
                                     {{-- Task milik user ini: bisa ubah status & progress --}}
                                     <template x-if="task.engineer_id == currentUserId">
                                         <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
-                                            <select x-model="task.status" @change="updateTask(task)" style="flex:1 1 100px; min-width:0; padding:5px 8px; border-radius:6px; border:1px solid #E7E5E3; font-size:11px; background:white; color:#3D3A44; cursor:pointer; outline:none;">
-                                                <option value="Assigned">Assigned</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Waiting Review">Waiting Review</option>
-                                                <option value="Completed">Completed</option>
-                                            </select>
-                                            <button @click="openProgressModal(task)" style="width:32px; flex-shrink:0; padding:5px 0; border-radius:6px; border:1px solid #E7E5E3; background:white; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease;" title="Upload Progress / Dokumentasi" onmouseover="this.style.background='#F1F0EE'" onmouseout="this.style.background='white'">
-                                                <svg style="width:13px; height:13px; color:#948F99;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                                </svg>
-                                            </button>
+                                            <template x-if="task.status === 'Assigned'">
+                                                <button @click="startTask(task)" style="flex:1; padding:6px 0; border-radius:6px; border:none; background:#C81E2C; color:white; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.filter='brightness(1.05)'" onmouseout="this.style.filter='brightness(1)'">
+                                                    Mulai Dikerjakan
+                                                </button>
+                                            </template>
+                                            
+                                            <template x-if="task.status === 'In Progress'">
+                                                <button @click="openProgressModal(task)" style="flex:1; padding:6px 0; border-radius:6px; border:1px solid #C81E2C; background:white; color:#C81E2C; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.15s ease; display:flex; justify-content:center; align-items:center; gap:4px;" onmouseover="this.style.background='#FDF1F2'" onmouseout="this.style.background='white'">
+                                                    <svg style="width:12px; height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                                    </svg>
+                                                    Update Progress
+                                                </button>
+                                            </template>
+
+                                            <template x-if="task.status === 'Waiting Review'">
+                                                <div style="flex:1; padding:6px 10px; border-radius:6px; background:#F8F7F6; border:1px solid #EFEDEB; font-size:11px; color:#9A6206; text-align:center; font-weight:600;">
+                                                    Menunggu Review
+                                                </div>
+                                            </template>
+
+                                            <template x-if="task.status === 'Completed'">
+                                                <div style="flex:1; padding:6px 10px; border-radius:6px; background:#E4F3EA; border:1px solid #A3D9B5; font-size:11px; color:#1B7A46; text-align:center; font-weight:600;">
+                                                    Selesai
+                                                </div>
+                                            </template>
+
                                             <button @click="openDetailModal(task)" style="width:32px; flex-shrink:0; padding:5px 0; border-radius:6px; border:1px solid #E7E5E3; background:#F8F7F6; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease;" title="Lihat Detail" onmouseover="this.style.background='#EFEDEB'" onmouseout="this.style.background='#F8F7F6'">
                                                 <svg style="width:13px; height:13px; color:#3D3A44;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -265,12 +281,20 @@
                                 <div x-show="editing" class="modal-grid-2">
                                     <div>
                                         <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Status</label>
-                                        <select x-model="form.status" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white; transition:border 0.15s ease; box-sizing:border-box;">
-                                            <option value="Assigned">Assigned</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Waiting Review">Waiting Review</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
+                                        {{-- Badge readonly: Assigned, In Progress, Completed --}}
+                                        <template x-if="form.original_status !== 'Waiting Review'">
+                                            <div style="padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:13px; color:#75727C; background:#F8F7F6; display:flex; align-items:center; gap:6px;">
+                                                <span style="width:8px; height:8px; border-radius:50%; background:#C81E2C; flex-shrink:0;"></span>
+                                                <span x-text="form.original_status"></span>
+                                            </div>
+                                        </template>
+                                        {{-- Dropdown hanya untuk Waiting Review → bisa pilih Completed --}}
+                                        <template x-if="form.original_status === 'Waiting Review'">
+                                            <select x-model="form.status" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white; transition:border 0.15s ease; box-sizing:border-box;">
+                                                <option value="Waiting Review">Waiting Review</option>
+                                                <option value="Completed">Completed</option>
+                                            </select>
+                                        </template>
                                     </div>
                                     <div>
                                         <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Progress (<span x-text="form.progress"></span>%)</label>
@@ -340,12 +364,27 @@
                             </label>
                             <p x-show="progressForm.fileName" style="font-size:10.5px; color:#1B7A46; margin-top:4px; margin-bottom:0;">✓ File siap diupload</p>
                         </div>
-                        <button @click="saveProgress()"
-                                style="width:100%; justify-content:center; background:#C81E2C; color:white; box-shadow:0 8px 20px rgba(200,30,44,0.24); padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:14px; cursor:pointer; margin-top:16px; display:flex; align-items:center; gap:7px; transition:all 0.15s ease;"
-                                onmouseover="this.style.filter='brightness(1.05)'"
-                                onmouseout="this.style.filter='brightness(1)'">
-                            Simpan Perubahan
-                        </button>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:11px; font-weight:700; color:#75727C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px;">Keterangan / Hasil Pekerjaan</label>
+                            <textarea x-model="progressForm.description"
+                                      style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #E7E5E3; font-size:14px; color:#17151C; outline:none; background:white; min-height:70px; transition:border 0.15s ease; box-sizing:border-box;"
+                                      placeholder="Tuliskan keterangan update progress..."></textarea>
+                        </div>
+                        
+                        <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+                            <button @click="saveProgress(false)"
+                                    style="flex:1 1 140px; justify-content:center; background:white; color:#3D3A44; border:1px solid #E7E5E3; padding:10px 17px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all 0.15s ease;"
+                                    onmouseover="this.style.background='#F8F7F6'"
+                                    onmouseout="this.style.background='white'">
+                                Simpan Draft Progress
+                            </button>
+                            <button @click="saveProgress(true)"
+                                    style="flex:1 1 140px; justify-content:center; background:#C81E2C; color:white; box-shadow:0 8px 20px rgba(200,30,44,0.24); padding:10px 17px; border-radius:8px; border:none; font-weight:600; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all 0.15s ease;"
+                                    onmouseover="this.style.filter='brightness(1.05)'"
+                                    onmouseout="this.style.filter='brightness(1)'">
+                                Selesai & Kirim Review
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -435,7 +474,7 @@
                                 <span style="font-weight:700; color:#C81E2C;" x-text="(selectedTask?.progress || 0) + '%'"></span>
                             </div>
                             <div style="width:100%; background:#EFEDEB; border-radius:20px; height:8px; overflow:hidden;">
-                                <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="'width: ' + (selectedTask?.progress || 0) + '%'"></div>
+                                <div style="height:100%; border-radius:20px; background:linear-gradient(90deg, #AF1424, #D62E3C); transition:width .3s ease;" :style="{ width: (selectedTask?.progress || 0) + '%' }"></div>
                             </div>
                         </div>
 
@@ -698,6 +737,7 @@
                         priority: task.priority,
                         deadline: task.deadline ? task.deadline.split('T')[0] : '',
                         status: task.status,
+                        original_status: task.status,
                         progress: task.progress || 0,
                         description: task.description || ''
                     };
@@ -712,6 +752,7 @@
                 openProgressModal: function(task) {
                     this.progressForm.taskId = task.id;
                     this.progressForm.progress = task.progress || 0;
+                    this.progressForm.description = task.description || '';
                     this.progressForm.fileName = '';
                     this.progressForm.docFile = null;
                     // Reset file input
@@ -795,6 +836,35 @@
                     }
                 },
 
+                startTask: async function(task) {
+                    try {
+                        var response = await fetch('/tasks/' + task.id, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({ status: 'In Progress' })
+                        });
+
+                        if (response.ok) {
+                            var data = await response.json();
+                            var idx = this.tasks.findIndex(function(t) { return t.id === task.id; });
+                            if (idx !== -1 && data) {
+                                this.tasks[idx] = data;
+                            }
+                            this.showToast('Task dimulai! Status diubah ke In Progress.');
+                        } else {
+                            var err = await response.json();
+                            this.showToast('Error: ' + (err.message || 'Gagal memulai task.'));
+                        }
+                    } catch (error) {
+                        console.error('Error starting task:', error);
+                        this.showToast('Terjadi kesalahan saat memulai task.');
+                    }
+                },
+
                 deleteTask: async function() {
                     if (!this.confirmData) return;
                     try {
@@ -821,10 +891,19 @@
                     }
                 },
 
-                saveProgress: async function() {
+                saveProgress: async function(isFinished = false) {
                     try {
                         var formData = new FormData();
                         formData.append('progress', this.progressForm.progress);
+                        if (this.progressForm.description) {
+                            formData.append('description', this.progressForm.description);
+                        }
+                        if (isFinished) {
+                            formData.append('status', 'Waiting Review');
+                            if (this.progressForm.progress < 100) {
+                                formData.append('progress', 100); // auto 100% when finished
+                            }
+                        }
                         formData.append('_method', 'PUT'); // method spoofing
                         if (this.progressForm.docFile) {
                             formData.append('doc_file', this.progressForm.docFile);
@@ -847,6 +926,8 @@
                             if (task && data) {
                                 task.progress = data.progress !== undefined ? data.progress : parseInt(this.progressForm.progress);
                                 task.doc_file = data.doc_file !== undefined ? data.doc_file : task.doc_file;
+                                task.description = data.description !== undefined ? data.description : task.description;
+                                task.status = data.status !== undefined ? data.status : task.status;
                                 task.attachments = data.attachments !== undefined ? data.attachments : task.attachments;
                             }
                             this.progressModalOpen = false;

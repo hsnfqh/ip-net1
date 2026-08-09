@@ -76,15 +76,50 @@ class TaskController extends Controller
                 'progress'    => 'sometimes|nullable|integer|min:0|max:100',
                 'doc_file'    => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
             ]);
+
+            // Lead Engineer restrictions on status changes
+            if (isset($validated['status'])) {
+                // Cannot change In Progress to anything else
+                if ($task->status === 'In Progress') {
+                    abort(403, 'Lead Engineer tidak dapat mengubah status task yang sedang In Progress.');
+                }
+                // Cannot change Completed to anything
+                if ($task->status === 'Completed') {
+                    abort(403, 'Status Completed tidak dapat diubah kembali.');
+                }
+                // Cannot go from Assigned to In Progress (hanya engineer yg bisa)
+                if ($task->status === 'Assigned' && $validated['status'] === 'In Progress') {
+                    abort(403, 'Lead Engineer tidak dapat mengubah status dari Assigned ke In Progress.');
+                }
+            }
         } else {
             $validated = $request->validate([
-                'status'   => 'nullable|in:Assigned,In Progress,Waiting Review,Completed',
-                'progress' => 'nullable|integer|min:0|max:100',
-                'doc_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
+                'status'      => 'nullable|in:Assigned,In Progress,Waiting Review,Completed',
+                'progress'    => 'nullable|integer|min:0|max:100',
+                'description' => 'sometimes|nullable|string',
+                'doc_file'    => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
             ]);
 
             // Engineer hanya boleh update task miliknya sendiri
             abort_unless($task->engineer_id === $user->id, 403);
+            
+            // Engineer restriction: Cannot change Completed tasks
+            if ($task->status === 'Completed') {
+                abort(403, 'Status Completed tidak dapat diubah kembali.');
+            }
+
+            // Engineer restriction: state machine
+            if (isset($validated['status'])) {
+                if ($task->status === 'Assigned' && !in_array($validated['status'], ['Assigned', 'In Progress'])) {
+                    abort(403, 'Invalid status transition.');
+                }
+                if ($task->status === 'In Progress' && !in_array($validated['status'], ['In Progress', 'Waiting Review'])) {
+                    abort(403, 'Invalid status transition.');
+                }
+                if ($task->status === 'Waiting Review' && $validated['status'] !== 'Waiting Review') {
+                    abort(403, 'Engineer tidak dapat mengubah status dari Waiting Review.');
+                }
+            }
         }
 
         // Handle file upload dokumentasi
@@ -151,6 +186,19 @@ class TaskController extends Controller
                         ]);
                     }
                 }
+            }
+        }
+
+        // Kirim notifikasi ke Engineer jika Lead Engineer mengubah status menjadi Completed
+        if ($user && $user->hasRole('Lead Engineer') && $statusChanged && $task->status === 'Completed') {
+            if ($task->engineer_id) {
+                \App\Models\Notification::create([
+                    'user_id' => $task->engineer_id,
+                    'title' => 'Tugas Selesai Direview',
+                    'message' => 'Tugas "' . $task->title . '" telah direview dan dinyatakan Completed oleh Lead Engineer ' . $user->name . '.',
+                    'url' => route('tasks.index'),
+                    'is_read' => false,
+                ]);
             }
         }
 
