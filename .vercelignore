@@ -1,9 +1,4 @@
 .env
 .env.*
-storage/*.key
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-storage/logs/*
 node_modules
 tests
