@@ -1,11 +1,11 @@
 <?php
 
-// Enable error reporting to display exact error trace on screen
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
-// Create temporary directories for Vercel Serverless environment
+define('LARAVEL_START', microtime(true));
+
+// Create temporary storage directories in /tmp for Vercel Serverless environment
 $tmpStorage = [
     '/tmp/storage/framework/views',
     '/tmp/storage/framework/cache/data',
@@ -21,13 +21,35 @@ foreach ($tmpStorage as $dir) {
     }
 }
 
-// Set environment variables for serverless execution
+// Fallback APP_KEY if not configured in Vercel UI
+if (!getenv('APP_KEY') && empty($_ENV['APP_KEY'])) {
+    putenv('APP_KEY=base64:hY6QE4DXLBB9ak0hAvBfR1jReRSDCEvI96WHmEkZ6vM=');
+    $_ENV['APP_KEY'] = 'base64:hY6QE4DXLBB9ak0hAvBfR1jReRSDCEvI96WHmEkZ6vM=';
+}
+
 putenv('APP_STORAGE=/tmp/storage');
 putenv('VIEW_COMPILED_PATH=/tmp/storage/framework/views');
 putenv('SESSION_DRIVER=cookie');
+putenv('CACHE_STORE=array');
 putenv('LOG_CHANNEL=stderr');
+
 $_ENV['APP_STORAGE'] = '/tmp/storage';
 $_ENV['VIEW_COMPILED_PATH'] = '/tmp/storage/framework/views';
+$_ENV['SESSION_DRIVER'] = 'cookie';
+$_ENV['CACHE_STORE'] = 'array';
+$_ENV['LOG_CHANNEL'] = 'stderr';
 
-// Forward request to Laravel public index
-require __DIR__ . '/../public/index.php';
+// Register Composer Autoloader
+require __DIR__ . '/../vendor/autoload.php';
+
+// Bootstrap Laravel Application
+/** @var Application $app */
+$app = require __DIR__ . '/../bootstrap/app.php';
+
+// Set storage path explicitly to writable /tmp/storage
+$app->useStoragePath('/tmp/storage');
+
+// Handle and send response
+$request = Request::capture();
+$response = $app->handleRequest($request);
+$response->send();
