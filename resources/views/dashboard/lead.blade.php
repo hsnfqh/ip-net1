@@ -77,7 +77,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 sm:mb-5">
                 <!-- Project Progress Chart -->
                 <div class="lg:col-span-2 wms-card p-4 sm:p-5">
-                    <h3 class="font-display text-[15px] font-semibold text-wms-ink-900 mb-4">Progress Project</h3>
+                    <h3 class="font-display text-[15px] font-semibold text-wms-ink-900 mb-4">Progress Project Berjalan</h3>
                     <div class="w-full overflow-x-auto">
                         <div style="height: 220px; min-width: 280px;">
                             <canvas id="projectProgressChart"></canvas>

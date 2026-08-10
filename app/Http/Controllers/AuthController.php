@@ -27,7 +27,7 @@ class AuthController extends Controller
 
         if ($user && $user->status === 'Inactive') {
             return back()->withErrors([
-                'email' => 'Akun Anda telah dinonaktifkan. Silakan hubungi administrator.',
+                'email' => 'Akun Anda telah dinonaktifkan. Silakan hubungi Lead Engineer.',
             ])->onlyInput('email');
         }
 

@@ -19,11 +19,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                         <input type="text" 
-                               x-model="search" 
+                               x-model="search"
+                               @input="currentPage = 1"
                                placeholder="Cari project atau client..." 
                                class="w-full sm:w-60 px-[11px] py-[9px] pl-8 rounded-lg border border-[#E7E5E3] text-[14px] text-[#17151C] outline-none bg-white focus:border-[#C81E2C] focus:shadow-[0_0_0_3px_#FDF1F2] transition-all">
                     </div>
-                    <select x-model="statusFilter" class="w-full sm:w-40 px-[11px] py-[9px] rounded-lg border border-[#E7E5E3] text-[14px] text-[#17151C] outline-none bg-white focus:border-[#C81E2C] focus:shadow-[0_0_0_3px_#FDF1F2] transition-all">
+                    <select x-model="statusFilter" @change="currentPage = 1" class="w-full sm:w-40 px-[11px] py-[9px] rounded-lg border border-[#E7E5E3] text-[14px] text-[#17151C] outline-none bg-white focus:border-[#C81E2C] focus:shadow-[0_0_0_3px_#FDF1F2] transition-all">
                         <option value="Semua">Semua Status</option>
                         <option value="Planning">Planning</option>
                         <option value="On Progress">On Progress</option>
@@ -57,7 +58,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <template x-for="project in filteredProjects" :key="project.id">
+                            <template x-for="project in paginatedProjects" :key="project.id">
                                 <tr class="border-t border-[#EFEDEB] hover:bg-[#F1F0EE] transition-colors duration-150">
                                     <td class="py-3 px-4 font-medium text-[#17151C]" x-text="project.name"></td>
                                     <td class="py-3 px-4 text-[#3D3A44]" x-text="project.client"></td>
@@ -111,6 +112,30 @@
                         </svg>
                     </div>
                     <p class="text-[13.5px]">Tidak ada project yang cocok dengan filter</p>
+                </div>
+
+                <!-- Pagination -->
+                <div x-show="filteredProjects.length > 0" class="flex items-center justify-between px-4 py-3 border-t border-[#EFEDEB]">
+                    <span class="text-[12.5px] text-[#948F99]">
+                        Menampilkan <span class="font-semibold text-[#17151C]" x-text="((currentPage - 1) * perPage) + 1"></span>–<span class="font-semibold text-[#17151C]" x-text="Math.min(currentPage * perPage, filteredProjects.length)"></span> dari <span class="font-semibold text-[#17151C]" x-text="filteredProjects.length"></span> project
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <button @click="prevPage" :disabled="currentPage === 1"
+                            class="rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium border border-[#E7E5E3] text-[#3D3A44] hover:bg-[#F1F0EE] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                            ← Prev
+                        </button>
+                        <template x-for="page in totalPages" :key="page">
+                            <button @click="goToPage(page)"
+                                :class="page === currentPage ? 'bg-[#C81E2C] text-white border-[#C81E2C]' : 'bg-white text-[#3D3A44] border-[#E7E5E3] hover:bg-[#F1F0EE]'"
+                                class="rounded-lg w-8 h-8 text-[12.5px] font-medium border transition-all"
+                                x-text="page">
+                            </button>
+                        </template>
+                        <button @click="nextPage" :disabled="currentPage === totalPages"
+                            class="rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium border border-[#E7E5E3] text-[#3D3A44] hover:bg-[#F1F0EE] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                            Next →
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -214,14 +239,7 @@
                                         <input type="date" x-model="form.deadline" class="w-full px-[11px] py-[9px] rounded-lg border border-[#E7E5E3] text-[14px] text-[#17151C] outline-none bg-white focus:border-[#C81E2C] focus:shadow-[0_0_0_3px_#FDF1F2] transition-all" required>
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="block text-[12px] font-bold text-[#75727C] mb-1.5 uppercase tracking-[0.3px]">Status</label>
-                                    <select x-model="form.status" class="w-full px-[11px] py-[9px] rounded-lg border border-[#E7E5E3] text-[14px] text-[#17151C] outline-none bg-white focus:border-[#C81E2C] focus:shadow-[0_0_0_3px_#FDF1F2] transition-all">
-                                        <option value="Planning">Planning</option>
-                                        <option value="On Progress">On Progress</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
-                                </div>
+
                             </div>
                             <div class="flex flex-col sm:flex-row gap-2.5 mt-4">
                                 <button type="submit" class="wms-btn flex-1 justify-center bg-[#C81E2C] text-white shadow-[0_8px_20px_rgba(200,30,44,0.24)] py-[10px] px-[17px] rounded-lg font-semibold text-[14px] hover:brightness-105 active:translate-y-[1px] transition-all">
@@ -276,6 +294,8 @@
             projects: @json($projects),
             search: '',
             statusFilter: 'Semua',
+            currentPage: 1,
+            perPage: 8,
             modalOpen: false,
             detailOpen: false,
             editing: false,
@@ -288,19 +308,31 @@
                 location: '',
                 description: '',
                 start_date: '',
-                deadline: '',
-                status: 'Planning'
+                deadline: ''
             },
             detailProject: null,
 
             get filteredProjects() {
                 return this.projects.filter(p => {
-                    const matchSearch = p.name.toLowerCase().includes(this.search.toLowerCase()) || 
+                    const matchSearch = p.name.toLowerCase().includes(this.search.toLowerCase()) ||
                                        p.client.toLowerCase().includes(this.search.toLowerCase());
                     const matchStatus = this.statusFilter === 'Semua' || p.status === this.statusFilter;
                     return matchSearch && matchStatus;
                 });
             },
+
+            get paginatedProjects() {
+                const start = (this.currentPage - 1) * this.perPage;
+                return this.filteredProjects.slice(start, start + this.perPage);
+            },
+
+            get totalPages() {
+                return Math.max(1, Math.ceil(this.filteredProjects.length / this.perPage));
+            },
+
+            goToPage(page) { this.currentPage = page; },
+            prevPage() { if (this.currentPage > 1) this.currentPage--; },
+            nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
 
             get modalTitle() {
                 return this.editing ? 'Edit Project' : 'Tambah Project';
@@ -319,8 +351,7 @@
                         location: '',
                         description: '',
                         start_date: '',
-                        deadline: '',
-                        status: 'Planning'
+                        deadline: ''
                     };
                 }
                 this.modalOpen = true;

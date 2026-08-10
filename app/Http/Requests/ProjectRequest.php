@@ -24,13 +24,12 @@ class ProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'client' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
+            'name'        => 'required|string|max:255',
+            'client'      => 'required|string|max:255',
+            'location'    => 'required|string|max:255',
             'description' => 'nullable|string',
-            'start_date' => 'required|date',
-            'deadline' => 'required|date|after_or_equal:start_date',
-            'status' => 'required|in:Planning,On Progress,Completed',
+            'start_date'  => 'required|date',
+            'deadline'    => 'required|date|after_or_equal:start_date',
         ];
     }
 }

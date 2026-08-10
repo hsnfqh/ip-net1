@@ -17,13 +17,17 @@ class DashboardController extends Controller
         $schedules = Schedule::with(['project', 'engineer'])->get();
         $users = User::with('roles')->get();
 
-        // Data untuk chart
-        $projectProgressData = $projects->map(function($project) {
-            return [
-                'name' => substr($project->name, 0, 14),
-                'progress' => $project->progress,
-            ];
-        });
+        // Hanya tampilkan max 5 project yang sedang On Progress untuk bar chart
+        $projectProgressData = $projects
+            ->where('status', 'On Progress')
+            ->sortByDesc('created_at')
+            ->take(5)
+            ->map(function($project) {
+                return [
+                    'name'     => substr($project->name, 0, 18),
+                    'progress' => $project->progress,
+                ];
+            })->values();
 
         $statusData = [
             ['name' => 'Assigned', 'value' => $tasks->where('status', 'Assigned')->count(), 'color' => '#3B82F6'],
@@ -75,12 +79,12 @@ class DashboardController extends Controller
             ->get();
 
         $data = [
-            'myTasksCount' => $myTasks->count(),
+            'myTasksCount'        => $myTasks->count(),
             'todaySchedulesCount' => $todaySchedules->count(),
-            'myTasks' => $myTasks,
-            'todaySchedules' => $todaySchedules,
-            'avgProgress' => $myTasks->count() ? round($myTasks->avg('progress')) : 0,
-            'nearestDeadline' => $myTasks->where('status', '!=', 'Completed')->sortBy('deadline')->first(),
+            'myTasks'             => $myTasks,
+            'todaySchedules'      => $todaySchedules,
+            'avgProgress'         => $myTasks->count() ? round($myTasks->avg('progress')) : 0,
+            'nearestDeadline'     => $myTasks->where('status', '!=', 'Completed')->sortBy('deadline')->first(),
         ];
 
         return view('dashboard.engineer', $data);

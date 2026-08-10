@@ -15,13 +15,14 @@ class ProjectController extends Controller
         $isLead = $user->hasRole('Lead Engineer');
 
         if ($isLead) {
-            $projects = Project::with(['creator', 'tasks'])->get();
+            // Hanya load field tasks yang dibutuhkan Alpine.js (progress & status)
+            $projects = Project::with(['tasks:id,project_id,progress,status'])->get();
         } else {
             // Engineer hanya bisa lihat project yang dia punya task di dalamnya
             $projectIds = \App\Models\Task::where('engineer_id', $user->id)
                 ->pluck('project_id')
                 ->unique();
-            $projects = Project::with(['creator', 'tasks'])
+            $projects = Project::with(['tasks:id,project_id,progress,status'])
                 ->whereIn('id', $projectIds)
                 ->get();
         }
@@ -33,10 +34,13 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
         $data['created_by'] = auth()->id();
+        // Status awal selalu Planning saat project baru dibuat
+        $data['status'] = 'Planning';
+
         $project = Project::create($data);
 
         if ($request->wantsJson() || $request->isJson() || $request->ajax()) {
-            return response()->json($project->load(['creator', 'tasks']), 201);
+            return response()->json($project->load(['tasks:id,project_id,progress,status']), 201);
         }
 
         return redirect()->route('projects.index')
@@ -45,10 +49,16 @@ class ProjectController extends Controller
 
     public function update(ProjectRequest $request, Project $project)
     {
-        $project->update($request->validated());
+        $data = $request->validated();
+        // Status TIDAK diubah dari form — auto-dihitung dari tasks
+        // Hanya update metadata project saja
+        $project->update($data);
+
+        // Recalculate status otomatis berdasarkan tasks
+        $this->recalculateStatus($project);
 
         if ($request->wantsJson() || $request->isJson() || $request->ajax()) {
-            return response()->json($project->load(['creator', 'tasks']));
+            return response()->json($project->fresh()->load(['tasks:id,project_id,progress,status']));
         }
 
         return redirect()->route('projects.index')
@@ -84,16 +94,37 @@ class ProjectController extends Controller
     {
         $projects = Project::with(['tasks'])->get()->map(function($project) {
             return [
-                'id' => $project->id,
-                'name' => $project->name,
-                'client' => $project->client,
+                'id'       => $project->id,
+                'name'     => $project->name,
+                'client'   => $project->client,
                 'location' => $project->location,
                 'deadline' => $project->deadline->format('Y-m-d'),
-                'status' => $project->status,
+                'status'   => $project->status,
                 'progress' => $project->progress,
             ];
         });
 
         return response()->json($projects);
+    }
+
+    /**
+     * Hitung ulang status project secara otomatis berdasarkan tasks.
+     * - Tidak ada task / semua 0%  → Planning
+     * - Ada task yang berjalan     → On Progress
+     * - Semua task Completed       → Completed
+     */
+    private function recalculateStatus(Project $project): void
+    {
+        $tasks = $project->tasks;
+
+        if ($tasks->isEmpty()) {
+            $status = 'Planning';
+        } elseif ($tasks->every(fn($t) => $t->status === 'Completed')) {
+            $status = 'Completed';
+        } else {
+            $status = 'On Progress';
+        }
+
+        $project->updateQuietly(['status' => $status]);
     }
 }
