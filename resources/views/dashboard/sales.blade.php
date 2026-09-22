@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - PT IP Network Solusindo')
+@section('title', 'Dashboard Sales - PT IP Network Solusindo')
 
 @push('styles')
 <style>
